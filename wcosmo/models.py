@@ -1,9 +1,11 @@
+import numpy as xp
 from gwpopulation.experimental.jax import NonCachingModel
 from gwpopulation.models.redshift import _Redshift
 
 from .wcosmo import FlatwCDM, available
 
 __all__ = ["CosmoModel", "PowerLawRedshift"]
+
 
 class CosmologyMixin:
 

@@ -2,7 +2,7 @@ import numpy as xp
 from gwpopulation.experimental.jax import NonCachingModel
 from gwpopulation.models.redshift import _Redshift
 
-from .wcosmo import FlatwCDM, available
+from .wcosmo import FlatwCDM, available, z_at_value
 
 __all__ = ["CosmoModel", "PowerLawRedshift"]
 

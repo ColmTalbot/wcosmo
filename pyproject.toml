@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools", "setuptools-scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wcosmo"
+authors = [
+    {name = "Colm Talbot", email = "talbotcolm@gmail.com"},
+    {name = "Amanda Farah"},
+]
+description = "A package for cosmology calculations with arbitrary numpy-like APIs"
+readme = "README.rst"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+classifiers = [
+    "Framework :: Django",
+    "Programming Language :: Python :: 3",
+]
+dependencies = [
+    "gwpopulation",
+    "numpy"
+]
+dynamic = ["version"]
+
+[tool.setuptools]
+packages = ["wcosmo"]
+
+[project.entry-points."gwpopulation.xp"]
+wcosmo = "wcosmo.wcosmo"
+
+[project.entry-points."gwpopulation.other"]
+wcosmo = "wcosmo.wcosmo:scipy.linalg.toeplitz"

@@ -173,7 +173,7 @@ def efunc(z, Om0, w0=-1):
         The E(z) function
     """
     zp1 = 1 + z
-    return (Om0 * zp1**3 + (1 - Om0) * zp1 ** (3 * (1 * w0))) ** 0.5
+    return (Om0 * zp1**3 + (1 - Om0) * zp1 ** (3 * (1 + w0))) ** 0.5
 
 
 @maybe_jit

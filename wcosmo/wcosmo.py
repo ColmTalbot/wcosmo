@@ -395,7 +395,7 @@ def differential_comoving_volume(z, H0, Om0, w0=-1):
     dC = comoving_distance(z, H0, Om0, w0=w0)
     Ez_i = inv_efunc(z, Om0, w0=w0)
     D_H = hubble_distance(H0)
-    return 1e-9 * dC**2 * D_H * Ez_i
+    return dC**2 * D_H * Ez_i
 
 
 @maybe_jit
@@ -480,7 +480,7 @@ def comoving_volume(z, H0, Om0, w0=-1):
     Vc : array_like
         The comoving volume in Gpc^3
     """
-    return 4 / 3 * xp.pi * comoving_distance(z, H0, Om0, w0=w0) ** 3 * 1e-9
+    return 4 / 3 * xp.pi * comoving_distance(z, H0, Om0, w0=w0) ** 3
 
 
 class FlatwCDM:

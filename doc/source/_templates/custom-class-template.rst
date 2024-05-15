@@ -11,7 +11,7 @@
    .. automethod:: __init__
 
    {% if methods %}
-   .. rubric:: {{ _('Methods') }}
+   .. rubric:: Methods
 
    .. autosummary::
    {% for item in methods %}
@@ -22,7 +22,7 @@
 
    {% block attributes %}
    {% if attributes %}
-   .. rubric:: {{ _('Attributes') }}
+   .. rubric:: Attributes
 
    .. autosummary::
    {% for item in attributes %}

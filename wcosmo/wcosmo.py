@@ -1,8 +1,12 @@
+"""
+Core implementation of cosmology functionality.
+"""
+
 from functools import partial
 
 import numpy as xp
 
-from .utils import maybe_jit, pade
+from .utils import maybe_jit, pade, _autodoc, _method_autodoc
 
 
 __all__ = [
@@ -32,47 +36,18 @@ __all__ = [
 ]
 
 
-_cosmology_docstrings_ = dict(
-    z="""z: array_like
-        Redshift""",
-    Om0="""Om0: array_like
-        The matter density fraction""",
-    w0="""w0: array_like
-        The (constant) equation of state parameter for dark energy""",
-    H0="""H0: float
-        The Hubble constant in km/s/Mpc""",
-    zmin="""zmin: float
-        The minimum redshift used in the conversion from distance to redshift,
-        default=1e-4""",
-    zmax="""zmax: float
-        The maximum redshift used in the conversion from distance to redshift,
-        default=100""",
-    name="""name: str
-        The name for the cosmology, mostly used for fixed instances""",
-    meta="""meta: dict
-        Additional metadata describing the cosmology, e.g., citation
-        information""",
-)
-
-
-def _autodoc(func):
-    """
-    Simple decorator to mark that a docstring needs formatting
-    """
-    func.__doc__ = func.__doc__.format(**_cosmology_docstrings_)
-    return func
-
-
 @_autodoc
 def flat_wcdm_taylor_expansion(w0):
     r"""
-    Taylor coefficients expansion of E(z) as as a function
-    of w.
+    Taylor coefficients expansion of :math:`E(z)` as as a function
+    of :math:`w_0`.
 
     .. math::
 
-        F(x; w) = \sum_{{n=0}}^{{\infty}} \binom{{-1/2}}{{n}} x^n / (1/2 - 3wn)
-                = 2 \sum_{{n=0}}^{{\infty}} \binom{{-1/2}}{{n}} x^n / (1 - 6wn)
+        F(x; w_0) = 2\sum_{{n=0}}^{{\infty}} \binom{{-\frac{{1}}{{2}}}}{{n}}
+        \frac{{x^n}}{{\left(1 - 6nw_0\right)}}
+
+    We include terms up to :math:`n=16`.
 
     Parameters
     ----------
@@ -80,7 +55,7 @@ def flat_wcdm_taylor_expansion(w0):
 
     Returns
     -------
-    xp.ndarray
+    array_like
         The Taylor expansion coefficients.
     """
     return xp.array(
@@ -109,8 +84,13 @@ def flat_wcdm_taylor_expansion(w0):
 @maybe_jit
 @_autodoc
 def efunc(z, Om0, w0=-1):
-    """
-    Compute the E(z) function for a flat Lambda CDM cosmology.
+    r"""
+    Compute the :math:`E(z)` function for a flat wCDM cosmology.
+
+    .. math::
+
+        E(z; \Omega_{{m,0}}, w_0) = \sqrt{{\Omega_{{m,0}} (1 + z)^3
+        + (1 - \Omega_{{m,0}}) (1 + z)^{{3(1 - w_0)}}}}
 
     Parameters
     ----------
@@ -131,7 +111,7 @@ def efunc(z, Om0, w0=-1):
 @_autodoc
 def inv_efunc(z, Om0, w0=-1):
     """
-    Compute the inverse of the E(z) function for a flat Lambda CDM cosmology.
+    Compute the inverse of the E(z) function for a flat wCDM cosmology.
 
     Parameters
     ----------
@@ -149,8 +129,8 @@ def inv_efunc(z, Om0, w0=-1):
 
 @_autodoc
 def hubble_distance(H0):
-    """
-    Compute the Hubble distance.
+    r"""
+    Compute the Hubble distance :math:`D_H = c H_0^{{-1}}`.
 
     Parameters
     ----------
@@ -160,21 +140,54 @@ def hubble_distance(H0):
     -------
     D_H: float
         The Hubble distance in Mpc
-
-    Notes
-    -----
-    I hard code the speed of light in km/s
     """
     speed_of_light = 299792.458
     return speed_of_light / H0
 
 
 @_autodoc
-def Phi(z, Om0, w0=-1):
+def hubble_parameter(z, H0, Om0, w0=-1):
+    r"""
+    Compute the Hubble parameter :math:`H(z)` for a flat wCDM cosmology.
+
+    .. math::
+
+        H(z; H_0, \Omega_{{m,0}}, w_0) = \frac{{d_H(H_0)}}{{E(z; \Omega_{{m,0}}, w_0)}}
+
+    Parameters
+    ----------
+    {z}
+    {H0}
+    {Om0}
+    {w0}
+
+    Returns
+    -------
+    H(z): array_like
+        The Hubble parameter
     """
-    Compute the Pade approximation to 1 / E(z) as described in arXiv:1111.6396.
-    We extend it to include a variable dark energy equation of state and
-    include more terms in the expansion.
+    return hubble_distance(H0=H0) * inv_efunc(z=z, H0=H0, Om0=Om0, w0=w0)
+
+
+@_autodoc
+def Phi(z, Om0, w0=-1):
+    r"""
+    Compute the Pade approximation to :math:`1 / E(z)` as described in
+    arXiv:1111.6396. We extend it to include a variable dark energy
+    equation of state and include more terms in the expansion
+
+    .. math::
+
+        \Phi(z; \Omega_{{m, 0}}, w_0) =
+        \frac{{\sum_i^n \alpha_i x^i}}{{1 + \sum_{{j=1}}^m \beta_j x^j}}.
+
+    Here the expansion is in terms of
+
+    .. math::
+
+        x = \left(\frac{{1 - \Omega_{{m, 0}}}}{{\Omega_{{m, 0}}}}\right) (1 + z)^{{3 w_0}}.
+
+    In practice we use :math:`m=n=7` whereas Adachi and Kasai use :math:`m=n=3`.
 
     Parameters
     ----------
@@ -185,9 +198,9 @@ def Phi(z, Om0, w0=-1):
     Returns
     -------
     Phi: array_like
-        The Pade approximation to 1 / E(z)
+        The Pade approximation to :math:`1 / E(z)`
     """
-    x = (1 - Om0) / Om0 * (1 + z) ** (-3)
+    x = (1 - Om0) / Om0 * (1 + z) ** (3 * w0)
     p, q = flat_wcdm_pade_coefficients(w0=w0)
     return xp.polyval(p, x) / xp.polyval(q, x)
 
@@ -196,8 +209,11 @@ def Phi(z, Om0, w0=-1):
 def flat_wcdm_pade_coefficients(w0=-1):
     """
     Compute the Pade coefficients as described in arXiv:1111.6396.
-    I expand the series to a bunch more terms to get a better fit.
+    We make two primary changes:
 
+    - allow a variable dark energy equation of state :math:`w_0` by changing
+      the definition of :math:`x`.
+    - include more terms (17) in the Taylor expansion.
 
     Parameters
     ----------
@@ -205,7 +221,7 @@ def flat_wcdm_pade_coefficients(w0=-1):
 
     Returns
     -------
-    p, q: xp.ndarray
+    p, q: array_like
         The Pade coefficients
     """
     coeffs = flat_wcdm_taylor_expansion(w0=w0)
@@ -215,9 +231,15 @@ def flat_wcdm_pade_coefficients(w0=-1):
 
 @_autodoc
 def analytic_integral(z, Om0, w0=-1):
-    """
-    Evaluate the analytic integral of 1 / E(z) from infty to z
-    assuming the Pade approximation to 1 / E(z).
+    r"""
+    .. math::
+
+        f(z; \Omega_{{m, 0}}, w_0) = \int_{{\infty}}^{{z}}
+        \frac{{dz'}}{{E(z'; \Omega_{{m, 0}}, w_0)}}
+        = \frac{{-2\Phi(z; \Omega_{{m, 0}}, w_0)}}{{\sqrt{{\Omega_{{m, 0}}(1 + z)}}}}.
+
+    The integral is approximated using the Pade approximation and is up
+    to a factor the term in the braces in (1.1) of Adachi and Kasai.
 
     Parameters
     ----------
@@ -228,7 +250,7 @@ def analytic_integral(z, Om0, w0=-1):
     Returns
     -------
     integral: array_like
-        The integral of 1 / E(z) from infty to z
+        The integral of :math:`1 / E(z)` from :math:`\infty` to :math:`z`
     """
     return -2 / Om0**0.5 * Phi(z, Om0, w0) / (1 + z) ** 0.5
 
@@ -236,9 +258,15 @@ def analytic_integral(z, Om0, w0=-1):
 @maybe_jit
 @_autodoc
 def comoving_distance(z, H0, Om0, w0=-1):
-    """
+    r"""
     Compute the comoving distance using an analytic integral of the
     Pade approximation.
+
+    .. math::
+
+        d_{{C}} = \frac{{c}}{{H_0}} \frac{{2}}{{\sqrt{{\Omega_{{m,0}}}}}}
+        \left( \Phi(0; \Omega_{{m, 0}}, w_0)
+        - \frac{{\Phi(z; \Omega_{{m, 0}}, w_0)}}{{\sqrt{{(1 + z)}}}}\right)
 
     Parameters
     ----------
@@ -259,9 +287,15 @@ def comoving_distance(z, H0, Om0, w0=-1):
 @maybe_jit
 @_autodoc
 def luminosity_distance(z, H0, Om0, w0=-1):
-    """
+    r"""
     Compute the luminosity distance using an analytic integral of the
     Pade approximation.
+
+    .. math::
+
+        d_L = \frac{{c}}{{H_0}} \frac{{2(1 + z)}}{{\sqrt{{\Omega_{{m,0}}}}}}
+        \left( \Phi(0; \Omega_{{m, 0}}, w_0)
+        - \frac{{\Phi(z; \Omega_{{m, 0}}, w_0)}}{{\sqrt{{(1 + z)}}}}\right)
 
     Parameters
     ----------
@@ -281,8 +315,16 @@ def luminosity_distance(z, H0, Om0, w0=-1):
 @maybe_jit
 @_autodoc
 def dDLdz(z, H0, Om0, w0=-1):
-    """
+    r"""
     The Jacobian for the conversion of redshift to luminosity distance.
+
+    .. math::
+
+        \frac{{dd_{{L}}}}{{z}} = d_C(z; H_0, \Omega_{{m,0}}, w_0)
+        + (1 + z) d_{{H}} E(z; \Omega_{{m, 0}}, w0)
+
+    Here :math:`d_{{C}}` is comoving distance and :math:`d_{{H}}` is the Hubble
+    distance.
 
     Parameters
     ----------
@@ -295,11 +337,13 @@ def dDLdz(z, H0, Om0, w0=-1):
     -------
     dDLdz: array_like
         The derivative of the luminosity distance with respect to redshift
+        in Mpc
 
     Notes
     -----
-    This function does not have a direct analog in the `astropy` cosmology
-    objects, but is needed for accounting for fitting in luminosity distance
+    This function does not have a direct analog in the :code:`astropy`
+    cosmology objects, but is needed for accounting for expressing
+    distributions of redshift as distributions over luminosity distance.
     """
     dC = comoving_distance(z, H0=H0, Om0=Om0, w0=w0)
     Ez_i = inv_efunc(z, Om0=Om0, w0=w0)
@@ -312,13 +356,14 @@ def z_at_value(func, fval, zmin=1e-4, zmax=100):
     """
     Compute the redshift at which a function equals a given value.
 
-    This follows the approach in `astropy`'s `z_at_value` function
-    closely, but uses linear interpolation instead of a root finder.
+    This follows the approach in :code:`astropy`'s :code:`z_at_value`
+    function closely, but uses linear interpolation instead of a root finder.
 
     Parameters
     ----------
     func: callable
-        The function to evaluate, e.g., luminosity_distance
+        The function to evaluate, e.g., :code:`Planck15.luminosity_distance`,
+        this should take :code:`fval` as the only input.
     fval: float
         The value of the function at the desired redshift
     {zmin}
@@ -336,8 +381,13 @@ def z_at_value(func, fval, zmin=1e-4, zmax=100):
 @maybe_jit
 @_autodoc
 def differential_comoving_volume(z, H0, Om0, w0=-1):
-    """
+    r"""
     Compute the differential comoving volume element.
+
+    .. math::
+
+        \frac{{dV_{{C}}}}{{dz}} = d_C^2(z; H_0, \Omega_{{m,0}}, w_0) d_H
+        E(z; \Omega_{{m, 0}}, w_0)
 
     Parameters
     ----------
@@ -349,7 +399,7 @@ def differential_comoving_volume(z, H0, Om0, w0=-1):
     Returns
     -------
     dVc: array_like
-        The differential comoving volume element in Gpc^3
+        The differential comoving volume element in :math:`\rm{{Gpc}}^3`
     """
     dC = comoving_distance(z, H0, Om0, w0=w0)
     Ez_i = inv_efunc(z, Om0, w0=w0)
@@ -369,12 +419,9 @@ def detector_to_source_frame(m1z, m2z, dL, H0, Om0, w0=-1, zmin=1e-4, zmax=100):
 
     Parameters
     ----------
-    m1z: array_like
-        The primary mass in the detector frame
-    m2z: array_like
-        The secondary mass in the detector frame
-    dL: array_like
-        The luminosity distance in Mpc
+    {m1z}
+    {m2z}
+    {dL}
     {H0}
     {Om0}
     {w0}
@@ -401,10 +448,8 @@ def source_to_detector_frame(m1, m2, z, H0, Om0, w0=-1):
 
     Parameters
     ----------
-    m1: array_like
-        The primary mass in the source frame
-    m2: array_like
-        The secondary mass in the source frame
+    {m1}
+    {m2}
     {z}
     {H0}
     {Om0}
@@ -423,8 +468,12 @@ def source_to_detector_frame(m1, m2, z, H0, Om0, w0=-1):
 @maybe_jit
 @_autodoc
 def comoving_volume(z, H0, Om0, w0=-1):
-    """
+    r"""
     Compute the comoving volume out to redshift z.
+
+    .. math::
+
+        V_C = \frac{{4\pi}}{{3}} d^3_C(z; H_0, \Omega_{{m,0}}, w_0)
 
     Parameters
     ----------
@@ -436,7 +485,7 @@ def comoving_volume(z, H0, Om0, w0=-1):
     Returns
     -------
     Vc: array_like
-        The comoving volume in Gpc^3
+        The comoving volume in :math:`\rm{{Gpc}}^3`
     """
     return 4 / 3 * xp.pi * comoving_distance(z, H0, Om0, w0=w0) ** 3
 
@@ -444,12 +493,13 @@ def comoving_volume(z, H0, Om0, w0=-1):
 @_autodoc
 class FlatwCDM:
     r"""
-    Implementation of FlatwCDM cosmology to (approximately) match the astropy
-    API.
+    Implementation of flat wCDM cosmology to (approximately) match the
+    :code:`astropy` API.
 
     .. math::
 
-        E(z) = \sqrt{{\Omega_{{m,0}} (1 + z)^3 + (1 - \Omega_{{m,0}}) (1 + z)^{{3(1 - w0)}}}}
+        E(z) = \sqrt{{\Omega_{{m,0}} (1 + z)^3
+        + (1 - \Omega_{{m,0}}) (1 + z)^{{3(1 - w_0)}}}}
 
     Parameters
     ----------
@@ -482,7 +532,15 @@ class FlatwCDM:
         self.meta = meta
 
     @property
+    def _kwargs(self):
+        return {"H0": self.H0, "Om0": self.Om0, "w0": self.w0}
+
+    @property
     def meta(self):
+        """
+        Meta data for the cosmology to hold additional information, e.g.,
+        citation information
+        """
         return self._meta
 
     @meta.setter
@@ -492,48 +550,69 @@ class FlatwCDM:
         self._meta = meta
 
     @property
-    def _kwargs(self):
-        return {"H0": self.H0, "Om0": self.Om0, "w0": self.w0}
-
-    @property
+    @_method_autodoc(strip_wcdm=True, alt=hubble_distance)
     def hubble_distance(self):
         return hubble_distance(self.H0)
 
+    @_method_autodoc(strip_wcdm=True, alt=luminosity_distance)
     def luminosity_distance(self, z):
         return luminosity_distance(z, **self._kwargs)
 
+    @_autodoc
     def dLdH(self, z):
+        r"""
+        Derivative of the luminosity distance w.r.t. the Hubble distance.
+
+        .. math::
+
+            \frac{{dd_L}}{{dd_H}} = \frac{{d_L}}{{d_H}}
+
+        Parameters
+        ----------
+        {z}
+
+        Returns
+        -------
+        array_like:
+            The derivative of the luminosity distance w.r.t., the Hubble distance
+        """
         return self.luminosity_distance(z) / self.hubble_distance
 
+    @_method_autodoc(strip_wcdm=True, alt=dDLdz)
     def dDLdz(self, z):
         return dDLdz(z, **self._kwargs)
 
+    @_method_autodoc(strip_wcdm=True, alt=differential_comoving_volume)
     def differential_comoving_volume(self, z):
         return differential_comoving_volume(z, **self._kwargs)
 
+    @_method_autodoc(strip_wcdm=True, alt=detector_to_source_frame)
     def detector_to_source_frame(self, m1z, m2z, dL):
         return detector_to_source_frame(
             m1z, m2z, dL, **self._kwargs, zmin=self.zmin, zmax=self.zmax
         )
 
+    @_method_autodoc(strip_wcdm=True, alt=source_to_detector_frame)
     def source_to_detector_frame(self, m1, m2, z):
         return source_to_detector_frame(m1, m2, z, **self._kwargs)
 
-    def log_differential_comoving_volume(self, z):
-        return xp.log(self.differential_comoving_volume(z))
-
+    @_method_autodoc(strip_wcdm=True, alt=efunc)
     def efunc(self, z):
-        return efunc(z, self.Om0)
+        return efunc(z, self.Om0, self.w0)
 
+    @_method_autodoc(strip_wcdm=True, alt=inv_efunc)
     def inv_efunc(self, z):
-        return inv_efunc(z, self.Om0)
+        return inv_efunc(z, self.Om0, self.w0)
 
+    @_method_autodoc(strip_wcdm=True, alt=hubble_parameter)
     def H(self, z):
-        return self.H0 * self.efunc(z)
+        return hubble_parameter(z, **self._kwargs)
 
+    @_method_autodoc(strip_wcdm=True, alt=comoving_distance)
     def comoving_distance(self, z):
         return comoving_distance(z, **self._kwargs)
 
+    @_method_autodoc(strip_wcdm=True, alt=comoving_volume)
     def comoving_volume(self, z):
         return comoving_volume(z, **self._kwargs)
 
@@ -541,8 +620,9 @@ class FlatwCDM:
 @_autodoc
 class FlatLambdaCDM(FlatwCDM):
     r"""
-    Implementation of FlatLambdaCDM cosmology to (approximately) match the
-    astropy API. This is the same as the :code:`FlatwCDM` with :code:`w0=-1`.
+    Implementation of a flat :math:`\Lambda\rm{{CDM}}` cosmology to
+    (approximately) match the :code:`astropy` API. This is the same as
+    the :code:`FlatwCDM` with :math:`w_0=-1`.
 
     .. math::
 
@@ -558,8 +638,19 @@ class FlatLambdaCDM(FlatwCDM):
     {meta}
     """
 
-    def __init__(self, H0, Om0, *, zmin=0.0001, zmax=100, name=None, meta=None):
-        super().__init__(H0, Om0, w0=-1, zmin=zmin, zmax=zmax, name=name, meta=meta)
+    def __init__(
+        self,
+        H0,
+        Om0,
+        *,
+        zmin=1e-4,
+        zmax=100,
+        name=None,
+        meta=None,
+    ):
+        super().__init__(
+            H0=H0, Om0=Om0, w0=-1, zmin=zmin, zmax=zmax, name=name, meta=meta
+        )
 
 
 Planck13 = FlatLambdaCDM(H0=67.77, Om0=0.30712, name="Planck13")

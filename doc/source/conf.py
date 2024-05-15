@@ -35,3 +35,5 @@ root_doc = 'index'
 
 html_theme = 'sphinx_nefertiti'
 html_static_path = ['_static']
+
+autosummary_generate = True

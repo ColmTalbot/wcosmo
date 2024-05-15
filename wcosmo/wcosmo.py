@@ -1,9 +1,8 @@
 from functools import partial
 
 import numpy as xp
-from scipy.linalg import toeplitz
 
-from .utils import maybe_jit
+from .utils import maybe_jit, pade
 
 
 __all__ = [
@@ -34,21 +33,37 @@ __all__ = [
 
 
 _cosmology_docstrings_ = dict(
-    z="""
-    z : array_like
+    z="""z: array_like
         Redshift""",
-    Om0="""
-    Om0 : array_like
+    Om0="""Om0: array_like
         The matter density fraction""",
-    w0="""
-    w0: array_like
+    w0="""w0: array_like
         The (constant) equation of state parameter for dark energy""",
-    H0="""
-    H0 : float
+    H0="""H0: float
         The Hubble constant in km/s/Mpc""",
+    zmin="""zmin: float
+        The minimum redshift used in the conversion from distance to redshift,
+        default=1e-4""",
+    zmax="""zmax: float
+        The maximum redshift used in the conversion from distance to redshift,
+        default=100""",
+    name="""name: str
+        The name for the cosmology, mostly used for fixed instances""",
+    meta="""meta: dict
+        Additional metadata describing the cosmology, e.g., citation
+        information""",
 )
 
 
+def _autodoc(func):
+    """
+    Simple decorator to mark that a docstring needs formatting
+    """
+    func.__doc__ = func.__doc__.format(**_cosmology_docstrings_)
+    return func
+
+
+@_autodoc
 def flat_wcdm_taylor_expansion(w0):
     r"""
     Taylor coefficients expansion of E(z) as as a function
@@ -56,120 +71,56 @@ def flat_wcdm_taylor_expansion(w0):
 
     .. math::
 
-        F(x; w) = \sum_{n=0}^{{\infty} (-1/2 C n) x^n / (1/2 - 3wn)
-                = 2 \sum_{n=0}^{\infty} (-1/2 C n) x^n / (1 - 6wn)
+        F(x; w) = \sum_{{n=0}}^{{\infty}} \binom{{-1/2}}{{n}} x^n / (1/2 - 3wn)
+                = 2 \sum_{{n=0}}^{{\infty}} \binom{{-1/2}}{{n}} x^n / (1 - 6wn)
 
     Parameters
     ----------
-    w0: array_like
-        The (constant) equation of state parameter for dark energy
+    {w0}
 
     Returns
     -------
     xp.ndarray
         The Taylor expansion coefficients.
     """
-    return xp.array([
-        xp.ones_like(w0),
-        -1 / (2 * (1 - 6 * w0)),
-        3 / (8 * (1 - 12 * w0)),
-        -5 / (16 * (1 - 18 * w0)),
-        35 / (128 * (1 - 24 * w0)),
-        -63 / (256 * (1 - 30 * w0)),
-        231 / (1024 * (1 - 36 * w0)),
-        -429 / (2048 * (1 - 42 * w0)),
-        6435 / (32768 * (1 - 48 * w0)),
-        -12155 / (65536 * (1 - 54 * w0)),
-        46189 / (262144 * (1 - 60 * w0)),
-        -88179 / (524288 * (1 - 66 * w0)),
-        676039 / (4194304 * (1 - 72 * w0)),
-        -1300075 / (8388608 * (1 - 78 * w0)),
-        5014575 / (33554432 * (1 - 84 * w0)),
-        -9694845 / (67108864 * (1 - 90 * w0)),
-        300540195 / (268435456 * (1 - 96 * w0)),
-    ])
-
-
-def pade(an, m, n=None):
-    """
-    Return Pade approximation to a polynomial as the ratio of two polynomials.
-
-    Parameters
-    ----------
-    an : (N,) array_like
-        Taylor series coefficients.
-    m : int
-        The order of the returned approximating polynomial `q`.
-    n : int, optional
-        The order of the returned approximating polynomial `p`. By default,
-        the order is ``len(an)-1-m``.
-
-    Returns
-    -------
-    p, q : Polynomial class
-        The Pade approximation of the polynomial defined by `an` is
-        ``p(x)/q(x)``.
-
-    Examples
-    --------
-    >>> import numpy as np
-    >>> from scipy.interpolate import pade
-    >>> e_exp = [1.0, 1.0, 1.0/2.0, 1.0/6.0, 1.0/24.0, 1.0/120.0]
-    >>> p, q = pade(e_exp, 2)
-
-    >>> e_exp.reverse()
-    >>> e_poly = np.poly1d(e_exp)
-
-    Compare ``e_poly(x)`` and the Pade approximation ``p(x)/q(x)``
-
-    >>> e_poly(1)
-    2.7166666666666668
-
-    >>> p(1)/q(1)
-    2.7179487179487181
-
-    Notes
-    -----
-    This code has been slightly edited from the numpy implementation to:
-    
-    - Use xp instead of np to support multiple backends
-    - Direclty use the fact that part of the matrix is Toeplitz
-
-    """
-    an = xp.asarray(an)
-    if n is None:
-        n = len(an) - 1 - m
-        if n < 0:
-            raise ValueError("Order of q <m> must be smaller than len(an)-1.")
-    if n < 0:
-        raise ValueError("Order of p <n> must be greater than 0.")
-    N = m + n
-    if N > len(an) - 1:
-        raise ValueError("Order of q+p <m+n> must be smaller than len(an).")
-    an = an[: N + 1]
-    Akj = xp.eye(N + 1, n + 1, dtype=an.dtype)
-    Bkj = toeplitz(xp.r_[0.0, -an[:-1]], xp.zeros(m))
-    Ckj = xp.hstack((Akj, Bkj))
-    pq = xp.linalg.solve(Ckj, an)
-    p = pq[: n + 1]
-    q = xp.r_[1.0, pq[n + 1 :]]
-    return p[::-1], q[::-1]
+    return xp.array(
+        [
+            w0**0,
+            -1 / (2 * (1 - 6 * w0)),
+            3 / (8 * (1 - 12 * w0)),
+            -5 / (16 * (1 - 18 * w0)),
+            35 / (128 * (1 - 24 * w0)),
+            -63 / (256 * (1 - 30 * w0)),
+            231 / (1024 * (1 - 36 * w0)),
+            -429 / (2048 * (1 - 42 * w0)),
+            6435 / (32768 * (1 - 48 * w0)),
+            -12155 / (65536 * (1 - 54 * w0)),
+            46189 / (262144 * (1 - 60 * w0)),
+            -88179 / (524288 * (1 - 66 * w0)),
+            676039 / (4194304 * (1 - 72 * w0)),
+            -1300075 / (8388608 * (1 - 78 * w0)),
+            5014575 / (33554432 * (1 - 84 * w0)),
+            -9694845 / (67108864 * (1 - 90 * w0)),
+            300540195 / (268435456 * (1 - 96 * w0)),
+        ]
+    )
 
 
 @maybe_jit
+@_autodoc
 def efunc(z, Om0, w0=-1):
-    f"""
+    """
     Compute the E(z) function for a flat Lambda CDM cosmology.
 
     Parameters
     ----------
-    {_cosmology_docstrings_["z"]}
-    {_cosmology_docstrings_["Om0"]}
-    {_cosmology_docstrings_["w0"]}
+    {z}
+    {Om0}
+    {w0}
 
     Returns
     -------
-    E(z) : array_like
+    E(z): array_like
         The E(z) function
     """
     zp1 = 1 + z
@@ -177,35 +128,37 @@ def efunc(z, Om0, w0=-1):
 
 
 @maybe_jit
+@_autodoc
 def inv_efunc(z, Om0, w0=-1):
-    f"""
+    """
     Compute the inverse of the E(z) function for a flat Lambda CDM cosmology.
 
     Parameters
     ----------
-    {_cosmology_docstrings_["z"]}
-    {_cosmology_docstrings_["Om0"]}
-    {_cosmology_docstrings_["w0"]}
+    {z}
+    {Om0}
+    {w0}
 
     Returns
     -------
-    inv_efunc : array_like
+    inv_efunc: array_like
         The inverse of the E(z) function
     """
     return 1 / efunc(z, Om0, w0)
 
 
+@_autodoc
 def hubble_distance(H0):
-    f"""
+    """
     Compute the Hubble distance.
 
     Parameters
     ----------
-    {_cosmology_docstrings_["H0"]}
+    {H0}
 
     Returns
     -------
-    D_H : float
+    D_H: float
         The Hubble distance in Mpc
 
     Notes
@@ -216,21 +169,22 @@ def hubble_distance(H0):
     return speed_of_light / H0
 
 
+@_autodoc
 def Phi(z, Om0, w0=-1):
-    f"""
+    """
     Compute the Pade approximation to 1 / E(z) as described in arXiv:1111.6396.
     We extend it to include a variable dark energy equation of state and
     include more terms in the expansion.
 
     Parameters
     ----------
-    {_cosmology_docstrings_["z"]}
-    {_cosmology_docstrings_["Om0"]}
-    {_cosmology_docstrings_["w0"]}
+    {z}
+    {Om0}
+    {w0}
 
     Returns
     -------
-    Phi : array_like
+    Phi: array_like
         The Pade approximation to 1 / E(z)
     """
     x = (1 - Om0) / Om0 * (1 + z) ** (-3)
@@ -238,19 +192,20 @@ def Phi(z, Om0, w0=-1):
     return xp.polyval(p, x) / xp.polyval(q, x)
 
 
+@_autodoc
 def flat_wcdm_pade_coefficients(w0=-1):
-    f"""
+    """
     Compute the Pade coefficients as described in arXiv:1111.6396.
     I expand the series to a bunch more terms to get a better fit.
 
 
     Parameters
     ----------
-    {_cosmology_docstrings_["w0"]}
+    {w0}
 
     Returns
     -------
-    p, q : xp.ndarray
+    p, q: xp.ndarray
         The Pade coefficients
     """
     coeffs = flat_wcdm_taylor_expansion(w0=w0)
@@ -258,41 +213,43 @@ def flat_wcdm_pade_coefficients(w0=-1):
     return p, q
 
 
+@_autodoc
 def analytic_integral(z, Om0, w0=-1):
-    f"""
+    """
     Evaluate the analytic integral of 1 / E(z) from infty to z
     assuming the Pade approximation to 1 / E(z).
 
     Parameters
     ----------
-    {_cosmology_docstrings_["z"]}
-    {_cosmology_docstrings_["Om0"]}
-    {_cosmology_docstrings_["w0"]}
+    {z}
+    {Om0}
+    {w0}
 
     Returns
     -------
-    integral : array_like
+    integral: array_like
         The integral of 1 / E(z) from infty to z
     """
     return -2 / Om0**0.5 * Phi(z, Om0, w0) / (1 + z) ** 0.5
 
 
 @maybe_jit
+@_autodoc
 def comoving_distance(z, H0, Om0, w0=-1):
-    f"""
+    """
     Compute the comoving distance using an analytic integral of the
     Pade approximation.
 
     Parameters
     ----------
-    {_cosmology_docstrings_["z"]}
-    {_cosmology_docstrings_["H0"]}
-    {_cosmology_docstrings_["Om0"]}
-    {_cosmology_docstrings_["w0"]}
-    
+    {z}
+    {H0}
+    {Om0}
+    {w0}
+
     Returns
     -------
-    comoving_distance : array_like
+    comoving_distance: array_like
         The comoving distance in Mpc
     """
     integral = analytic_integral(z, Om0=Om0) - analytic_integral(0, Om0=Om0, w0=w0)
@@ -300,41 +257,43 @@ def comoving_distance(z, H0, Om0, w0=-1):
 
 
 @maybe_jit
+@_autodoc
 def luminosity_distance(z, H0, Om0, w0=-1):
-    f"""
+    """
     Compute the luminosity distance using an analytic integral of the
     Pade approximation.
 
     Parameters
     ----------
-    {_cosmology_docstrings_["z"]}
-    {_cosmology_docstrings_["H0"]}
-    {_cosmology_docstrings_["Om0"]}
-    {_cosmology_docstrings_["w0"]}
-    
+    {z}
+    {H0}
+    {Om0}
+    {w0}
+
     Returns
     -------
-    luminosity_distance : array_like
+    luminosity_distance: array_like
         The luminosity distance in Mpc
     """
     return (1 + z) * comoving_distance(z, H0, Om0, w0)
 
 
 @maybe_jit
+@_autodoc
 def dDLdz(z, H0, Om0, w0=-1):
-    f"""
+    """
     The Jacobian for the conversion of redshift to luminosity distance.
 
     Parameters
     ----------
-    {_cosmology_docstrings_["z"]}
-    {_cosmology_docstrings_["H0"]}
-    {_cosmology_docstrings_["Om0"]}
-    {_cosmology_docstrings_["w0"]}
+    {z}
+    {H0}
+    {Om0}
+    {w0}
 
     Returns
     -------
-    dDLdz : array_like
+    dDLdz: array_like
         The derivative of the luminosity distance with respect to redshift
 
     Notes
@@ -348,6 +307,7 @@ def dDLdz(z, H0, Om0, w0=-1):
     return dC + (1 + z) * D_H * Ez_i
 
 
+@_autodoc
 def z_at_value(func, fval, zmin=1e-4, zmax=100):
     """
     Compute the redshift at which a function equals a given value.
@@ -357,18 +317,16 @@ def z_at_value(func, fval, zmin=1e-4, zmax=100):
 
     Parameters
     ----------
-    func : callable
+    func: callable
         The function to evaluate, e.g., luminosity_distance
-    fval : float
+    fval: float
         The value of the function at the desired redshift
-    zmin : float, optional
-        The minimum redshift to consider, default=1e-4
-    zmax : float, optional
-        The maximum redshift to consider, default=100
+    {zmin}
+    {zmax}
 
     Returns
     -------
-    z : float
+    z: float
         The redshift at which the function equals the desired value
     """
     zs = xp.logspace(xp.log10(zmin), xp.log10(zmax), 1000)
@@ -376,20 +334,21 @@ def z_at_value(func, fval, zmin=1e-4, zmax=100):
 
 
 @maybe_jit
+@_autodoc
 def differential_comoving_volume(z, H0, Om0, w0=-1):
-    f"""
+    """
     Compute the differential comoving volume element.
 
     Parameters
     ----------
-    {_cosmology_docstrings_["z"]}
-    {_cosmology_docstrings_["H0"]}
-    {_cosmology_docstrings_["Om0"]}
-    {_cosmology_docstrings_["w0"]}
+    {z}
+    {H0}
+    {Om0}
+    {w0}
 
     Returns
     -------
-    dVc : array_like
+    dVc: array_like
         The differential comoving volume element in Gpc^3
     """
     dC = comoving_distance(z, H0, Om0, w0=w0)
@@ -399,10 +358,9 @@ def differential_comoving_volume(z, H0, Om0, w0=-1):
 
 
 @maybe_jit
-def detector_to_source_frame(
-    m1z, m2z, dL, H0, Om0, w0=-1, zmin=1e-4, zmax=100
-):
-    f"""
+@_autodoc
+def detector_to_source_frame(m1z, m2z, dL, H0, Om0, w0=-1, zmin=1e-4, zmax=100):
+    """
     Convert masses and luminosity distance from the detector frame to
     source frame masses and redshift.
 
@@ -411,23 +369,21 @@ def detector_to_source_frame(
 
     Parameters
     ----------
-    m1z : array_like
+    m1z: array_like
         The primary mass in the detector frame
-    m2z : array_like
+    m2z: array_like
         The secondary mass in the detector frame
-    dL : array_like
+    dL: array_like
         The luminosity distance in Mpc
-    {_cosmology_docstrings_["H0"]}
-    {_cosmology_docstrings_["Om0"]}
-    {_cosmology_docstrings_["w0"]}
-    zmin : float, optional
-        The minimum redshift to consider, default=1e-4
-    zmax : float, optional
-        The maximum redshift to consider, default=100
+    {H0}
+    {Om0}
+    {w0}
+    {zmin}
+    {zmax}
 
     Returns
     -------
-    m1, m2, z : array_like
+    m1, m2, z: array_like
         The primary and secondary masses in the source frame and the redshift
     """
     distance_func = partial(luminosity_distance, H0=H0, Om0=Om0, w0=w0)
@@ -438,24 +394,25 @@ def detector_to_source_frame(
 
 
 @maybe_jit
+@_autodoc
 def source_to_detector_frame(m1, m2, z, H0, Om0, w0=-1):
-    f"""
+    """
     Convert masses and redshift from the source frame to the detector frame.
 
     Parameters
     ----------
-    m1 : array_like
+    m1: array_like
         The primary mass in the source frame
-    m2 : array_like
+    m2: array_like
         The secondary mass in the source frame
-    {_cosmology_docstrings_["z"]}
-    {_cosmology_docstrings_["H0"]}
-    {_cosmology_docstrings_["Om0"]}
-    {_cosmology_docstrings_["w0"]}
-    
+    {z}
+    {H0}
+    {Om0}
+    {w0}
+
     Returns
     -------
-    m1z, m2z, dL : array_like
+    m1z, m2z, dL: array_like
         The primary and secondary masses in the detector frame and the
         luminosity distance
     """
@@ -464,26 +421,47 @@ def source_to_detector_frame(m1, m2, z, H0, Om0, w0=-1):
 
 
 @maybe_jit
+@_autodoc
 def comoving_volume(z, H0, Om0, w0=-1):
-    f"""
+    """
     Compute the comoving volume out to redshift z.
 
     Parameters
     ----------
-    {_cosmology_docstrings_["z"]}
-    {_cosmology_docstrings_["H0"]}
-    {_cosmology_docstrings_["Om0"]}
-    {_cosmology_docstrings_["w0"]}
-    
+    {z}
+    {H0}
+    {Om0}
+    {w0}
+
     Returns
     -------
-    Vc : array_like
+    Vc: array_like
         The comoving volume in Gpc^3
     """
     return 4 / 3 * xp.pi * comoving_distance(z, H0, Om0, w0=w0) ** 3
 
 
+@_autodoc
 class FlatwCDM:
+    r"""
+    Implementation of FlatwCDM cosmology to (approximately) match the astropy
+    API.
+
+    .. math::
+
+        E(z) = \sqrt{{\Omega_{{m,0}} (1 + z)^3 + (1 - \Omega_{{m,0}}) (1 + z)^{{3(1 - w0)}}}}
+
+    Parameters
+    ----------
+    {H0}
+    {Om0}
+    {w0}
+    {zmin}
+    {zmax}
+    {name}
+    {meta}
+    """
+
     def __init__(
         self,
         H0,
@@ -560,7 +538,25 @@ class FlatwCDM:
         return comoving_volume(z, **self._kwargs)
 
 
+@_autodoc
 class FlatLambdaCDM(FlatwCDM):
+    r"""
+    Implementation of FlatLambdaCDM cosmology to (approximately) match the
+    astropy API. This is the same as the :code:`FlatwCDM` with :code:`w0=-1`.
+
+    .. math::
+
+        E(z) = \sqrt{{\Omega_{{m,0}} (1 + z)^3 + (1 - \Omega_{{m,0}})}}
+
+    Parameters
+    ----------
+    {H0}
+    {Om0}
+    {zmin}
+    {zmax}
+    {name}
+    {meta}
+    """
 
     def __init__(self, H0, Om0, *, zmin=0.0001, zmax=100, name=None, meta=None):
         super().__init__(H0, Om0, w0=-1, zmin=zmin, zmax=zmax, name=name, meta=meta)

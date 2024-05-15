@@ -1,0 +1,9 @@
+ipython_genutils
+jinja2
+nbsphinx
+numpydoc
+pandoc
+pygments
+sphinx
+sphinx_rtd_theme
+sphinx-nefertiti

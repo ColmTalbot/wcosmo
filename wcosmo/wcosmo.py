@@ -90,7 +90,7 @@ def efunc(z, Om0, w0=-1):
     .. math::
 
         E(z; \Omega_{{m,0}}, w_0) = \sqrt{{\Omega_{{m,0}} (1 + z)^3
-        + (1 - \Omega_{{m,0}}) (1 + z)^{{3(1 - w_0)}}}}
+        + (1 - \Omega_{{m,0}}) (1 + z)^{{3(1 + w_0)}}}}
 
     Parameters
     ----------
@@ -499,7 +499,7 @@ class FlatwCDM:
     .. math::
 
         E(z) = \sqrt{{\Omega_{{m,0}} (1 + z)^3
-        + (1 - \Omega_{{m,0}}) (1 + z)^{{3(1 - w_0)}}}}
+        + (1 - \Omega_{{m,0}}) (1 + z)^{{3(1 + w_0)}}}}
 
     Parameters
     ----------

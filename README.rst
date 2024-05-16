@@ -4,6 +4,34 @@ Backend agnostic astropy-like cosmology
 The primary intention for this package is for use with :code:`GWPopulation`
 but the main functionality can be used externally.
 
+Installation and contribution
+-----------------------------
+
+Currently installation is only available from source
+
+.. code-block:: console
+
+    $ pip install git+https://github.com/ColmTalbot/wcosmo.git
+
+for development you should follow a standard fork-and-pull workflow.
+
+- First create a new fork at :code:`github.com/UserName/wcosmo`.
+- Clone your fork
+
+  .. code-block:: console
+
+    $ git clone git@github.com:UserName/wcosmo.git
+
+  or use a GitHub codespace.
+- Install the local version with
+
+  .. code-block:: console
+
+    $ python -m pip install .
+
+- Make any desired edits and push to your fork.
+- Open a pull request into :code:`git@github.com:ColmTalbot/wcosmo.git`.
+
 Basic usage
 -----------
 
@@ -14,21 +42,9 @@ To import an astropy-like cosmology (without units)
     from wcosmo import FlatwCDM
     cosmology = FlatwCDM(H0=70, Om0=0.3, w0=-1)
 
-To use this in :code:`GWPopulation`
-
-.. code-block:: python
-
-    import gwpopulation as gwpop
-    from wcosmo.models import CosmoModel, PowerLawRedshift
-
-    model = CosmoModel(
-        model_functions=[
-            gwpop.models.mass.two_component_primary_mass_ratio,
-            gwpop.models.spin.iid_spin,
-            PowerLawRedshift(cosmo_model="FlatwCDM"),
-        ],
-        cosmo_model="FlatwCDM",
-    )
+This code is automatically used in :code:`GWPopulation` when using either
+:code:`gwpopulation.experimental.cosmo_models.CosmoModel` and/or
+:code:`PowerLawRedshift`
 
 Changing backend
 ----------------
@@ -47,6 +63,7 @@ Manual backend setting can be done as follows:
     import jax.numpy as jnp
     from jax.scipy.linalg.toeplitz import toeplitz
 
-    from wcosmo import wcosmo
+    from wcosmo import wcosmo, utils
     wcosmo.xp = jnp
-    wcosmo.toeplitz = toeplitz
+    utils.xp = jnp
+    utils.toeplitz = toeplitz

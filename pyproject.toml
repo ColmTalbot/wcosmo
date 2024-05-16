@@ -27,7 +27,7 @@ packages = ["wcosmo"]
 
 [project.entry-points."gwpopulation.xp"]
 wcosmo = "wcosmo.wcosmo"
-wcosmo-models = "wcosmo.models"
+wcosmo-utils = "wcosmo.utils"
 
 [project.entry-points."gwpopulation.other"]
-wcosmo = "wcosmo.wcosmo:scipy.linalg.toeplitz"
+wcosmo-utils = "wcosmo.utils:scipy.linalg.toeplitz"

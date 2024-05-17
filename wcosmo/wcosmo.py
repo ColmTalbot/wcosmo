@@ -280,7 +280,7 @@ def comoving_distance(z, H0, Om0, w0=-1):
     comoving_distance: array_like
         The comoving distance in Mpc
     """
-    integral = analytic_integral(z, Om0=Om0) - analytic_integral(0, Om0=Om0, w0=w0)
+    integral = analytic_integral(z, Om0=Om0, w0=w0) - analytic_integral(0, Om0=Om0, w0=w0)
     return integral * hubble_distance(H0)
 
 

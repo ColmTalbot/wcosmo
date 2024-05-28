@@ -25,6 +25,9 @@ dynamic = ["version"]
 [tool.setuptools]
 packages = ["wcosmo"]
 
+[tool.setuptools_scm]
+write_to = "wcosmo/_version.py"
+
 [project.entry-points."gwpopulation.xp"]
 wcosmo = "wcosmo.wcosmo"
 wcosmo-utils = "wcosmo.utils"

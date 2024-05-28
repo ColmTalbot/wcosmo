@@ -19,7 +19,7 @@ jobs:
           python-version: "3.11"
       - name: build release distributions
         run: |
-          python -m pip install build
+          python -m pip install build setuptools_scm
           python -m build --sdist --wheel --outdir dist/ .
       - name: upload wheel and tarball
         uses: actions/upload-artifact@v4

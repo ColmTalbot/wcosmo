@@ -1,0 +1,5 @@
+[report]
+show_missing = true
+
+[run]
+omit = wcosmo/test/*,wcosmo/_version.py

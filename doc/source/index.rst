@@ -2,24 +2,18 @@
 
 .. include:: ../../README.rst
 
+Examples
+--------
+
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
 
+   Examples <examples/index>
 
-.. autosummary::
-   :toctree: api
-   :template: custom-module-template.rst
-   :caption: API
-   :recursive:
+API Reference
+-------------
 
-   wcosmo
-   utils
+.. toctree::
+   :maxdepth: 2
 
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   API <api/index>

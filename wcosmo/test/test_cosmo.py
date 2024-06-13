@@ -13,6 +13,8 @@ funcs = [
     "efunc",
     "inv_efunc",
     "differential_comoving_volume",
+    "absorption_distance",
+    "lookback_time",
 ]
 
 

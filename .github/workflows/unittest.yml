@@ -50,8 +50,6 @@ jobs:
     - name: Run pre-commit checks
       run: |
         pre-commit run --all-files --verbose --show-diff-on-failure
-        jupyter nbconvert --clear-output --inplace examples/*.ipynb
-        git reset --hard
     - name: Test with pytest
       run: |
         pytest --cov wcosmo -ra --color yes --cov-report=xml --junitxml=pytest.xml

@@ -147,7 +147,7 @@ def indefinite_integral(z, Om0, w0=-1, zpower=0):
 
         I(z; \Omega_{{m, 0}}, w_0) = \frac{{-2 (1 + z)^{{\frac{{1}}{{2}}-k}}}}
         {{\Omega_{{m, 0}}^{{\frac{{1}}{{2}}}}}} \Phi(z; \Omega_{{m, 0}}, w_0).
-    
+
     .. math::
 
         \Phi(z; \Omega_{{m, 0}}, w_0) =

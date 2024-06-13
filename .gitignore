@@ -3,4 +3,5 @@
 build/
 doc/build/
 doc/source/api/
+.coverage
 wcosmo/_version.py

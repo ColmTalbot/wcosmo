@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools", "setuptools-scm"]
+requires = ["setuptools", "setuptools_scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -21,6 +21,13 @@ dependencies = [
     "scipy",
 ]
 dynamic = ["version"]
+
+[project.optional-dependencies]
+test = [
+    "pytest-cov",
+    "gwpopulation",
+    "astropy",
+]
 
 [tool.setuptools]
 packages = ["wcosmo"]

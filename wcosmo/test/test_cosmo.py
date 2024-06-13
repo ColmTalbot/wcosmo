@@ -1,4 +1,3 @@
-
 import numpy as np
 import pytest
 from astropy import cosmology
@@ -35,6 +34,7 @@ def test_redshift_function(cosmo, func, backend):
 @pytest.mark.parametrize("func", funcs[:3])
 def test_z_at_value(cosmo, func, backend):
     from gwpopulation.utils import xp
+
     ours = getattr(wcosmo.available[cosmo], func)
     theirs = getattr(getattr(cosmology, cosmo), func)
 

@@ -1,7 +1,7 @@
 import gwpopulation
 import pytest
 
-from ..wcosmo import available, FlatLambdaCDM
+from ..wcosmo import FlatLambdaCDM, available
 
 
 @pytest.fixture(params=["numpy", "jax", "cupy"])
@@ -11,7 +11,7 @@ def backend(request):
     return request.param
 
 
-@pytest.fixture 
+@pytest.fixture
 def npy():
     return gwpopulation.set_backend("numpy")
 

@@ -3,3 +3,4 @@
 build/
 doc/build/
 doc/source/api/
+wcosmo/_version.py

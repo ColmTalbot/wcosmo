@@ -1,16 +1,35 @@
 Backend agnostic astropy-like cosmology
 =======================================
 
-The primary intention for this package is for use with :code:`GWPopulation`
-but the main functionality can be used externally.
+An efficient implementation of :code:`astropy`-like cosmology compatible
+with :code:`numpy`-like backends, e.g., :code:`jax` and :code:`cupy`.
+
+There are two main features leading to superior efficiency to :code:`astropy`:
+
+- Integrals of :math:`E(z)` and related functions are performed analytically
+  with Pade approximations.
+- Support for :code:`jax` and :code:`cupy` backends allow hardware
+  acceleration, just-in-time compilation, and automatic differentiation.
+- We don't use explicit units, which can be a source of inefficiency.
+
+The primary limitations are:
+
+- Only flat cosmologies are supported with two components with constant
+  equations of state, e.g., :code:`FlatwCDM`.
+- Approximations to the various integrals generally agree with :code:`astropy`
+  at the 0.1% level.
+- The units we use are documented, but users need to be careful.
 
 Installation and contribution
 -----------------------------
 
-Currently installation is only available from source
+:code:`wcosmo` can be installed via :code:`conda-forge`, :code:`pypi` or from
+source.
 
 .. code-block:: console
 
+    $ mamba install -c conda-forge wcosmo
+    $ pip install wcosmo
     $ pip install git+https://github.com/ColmTalbot/wcosmo.git
 
 for development you should follow a standard fork-and-pull workflow.
@@ -42,12 +61,16 @@ To import an astropy-like cosmology (without units)
     from wcosmo import FlatwCDM
     cosmology = FlatwCDM(H0=70, Om0=0.3, w0=-1)
 
+GWPopulation
+^^^^^^^^^^^^
+
+The primary intention for this package is for use with :code:`GWPopulation`.
 This code is automatically used in :code:`GWPopulation` when using either
 :code:`gwpopulation.experimental.cosmo_models.CosmoModel` and/or
 :code:`PowerLawRedshift`
 
 Changing backend
-----------------
+^^^^^^^^^^^^^^^^
 
 The backend can be switched automatically using, e.g.,
 

@@ -43,7 +43,8 @@ jobs:
 
       - name: Build documentation
         run: |
-          # cp examples/*.ipynb docs
+          cp examples/wcosmo_timing.ipynb doc/source/examples/timing.ipynb
+          cp examples/wcosmo_gwtc3.ipynb doc/source/examples/gwtc3.ipynb
           cd doc
           make clean
           make html

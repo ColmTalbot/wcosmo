@@ -1,5 +1,8 @@
 Examples
 ========
 
-.. attention::
-   No example notebooks are available yet.
+.. toctree::
+   :maxdepth: 1
+
+   gwtc3
+   timing

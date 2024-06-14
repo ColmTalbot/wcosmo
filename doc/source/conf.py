@@ -54,7 +54,7 @@ release = importlib.metadata.version("wcosmo").split("+")[0]
 if not version_match or version_match.isdigit() or version_match == "latest":
     # For local development, infer the version to match from the package.
     if "dev" in release or "rc" in release:
-        version_match = "dev"
+        version_match = "latest"
         # We want to keep the relative reference if we are in dev mode
         # but we want the whole url if we are effectively in a released version
         json_url = "_static/switcher.json"
@@ -65,23 +65,25 @@ elif version_match == "stable":
 
 
 html_theme_options = {
-    "navbar_center": ["version-switcher", "navbar-nav"],
-    # "navbar_start": ["navbar-logo"],
-    # "navbar_end": ["theme-switcher", "navbar-icon-links"],
-    # "navbar_persistent": ["search-button"],
-    # "primary_sidebar_end": ["custom-template", "sidebar-ethical-ads"],
-    # "article_footer_items": ["test", "test"],
-    # "content_footer_items": ["test", "test"],
+    "logo": {"text": "wcosmo"},
+    "navbar_center": ["navbar-nav"],
+    "navbar_start": ["navbar-logo", "version-switcher"],
+    "navbar_end": ["theme-switcher", "navbar-icon-links"],
+    "use_edit_page_button": True,
+    "show_version_warning_banner": True,
     "footer_start": ["copyright"],
     "footer_center": ["sphinx-version"],
-    # "secondary_sidebar_items": {
-    #     "**/*": ["page-toc", "edit-this-page", "sourcelink"],
-    #     "examples/no-sidebar": [],
-    # },
     "switcher": {
         "json_url": json_url,
         "version_match": version_match,
     },
+    "icon_links": [
+        {
+            "name": "GitHub",
+            "url": "https://github.com/ColmTalbot/wcosmo",
+            "icon": "fa-brands fa-github",
+        },
+    ],
 }
 
 html_context = {

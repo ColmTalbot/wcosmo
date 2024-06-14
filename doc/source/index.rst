@@ -1,19 +1,8 @@
-.. currentmodule:: wcosmo
-
 .. include:: ../../README.rst
 
-Examples
---------
-
 .. toctree::
-   :maxdepth: 2
+   :hidden:
 
    Examples <examples/index>
-
-API Reference
--------------
-
-.. toctree::
-   :maxdepth: 2
-
    API <api/index>
+   Changelog <https://github.com/ColmTalbot/wcosmo/releases>

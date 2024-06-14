@@ -1,17 +1,18 @@
 [
     {
-      "version": "dev",
+      "version": "latest",
       "url": "https://wcosmo.readthedocs.io/en/latest/"
     },
     {
-      "name": "0.2.1 (stable)",
-      "version": "v0.2.1",
+      "name": "0.2.2 (stable)",
+      "version": "v0.2.2",
       "url": "https://wcosmo.readthedocs.io/en/stable/",
       "preferred": true
     },
     {
-      "name": "0.2.0",
-      "version": "v0.2.0",
-      "url": "https://wcosmo.readthedocs.io/en/v0.2.0/"
+      "name": "0.2.1 (stable)",
+      "version": "v0.2.1",
+      "url": "https://wcosmo.readthedocs.io/en/v0.2.1/",
+      "preferred": true
     }
   ]

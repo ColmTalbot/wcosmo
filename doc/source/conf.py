@@ -43,7 +43,7 @@ autosummary_generate = True
 numpydoc_show_class_members = False
 
 # Define the json_url for our version switcher.
-json_url = "https://wcosmo.readthedocs.io/en/latest/_static/switcher.json"
+json_url = "https://wcosmo.readthedocs.io/en/docs-fixes/_static/switcher.json"
 
 # Define the version we use for matching in the version switcher.
 version_match = os.environ.get("READTHEDOCS_VERSION")

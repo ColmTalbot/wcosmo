@@ -5,12 +5,12 @@
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
-import importlib.metadata
+# import importlib.metadata
 
 project = "wcosmo"
 copyright = "2024, Colm Talbot, Amanda Farah"
 author = "Colm Talbot, Amanda Farah"
-release = importlib.metadata.version("wcosmo").split("+")[0]
+# release = importlib.metadata.version("wcosmo").split("+")[0]
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

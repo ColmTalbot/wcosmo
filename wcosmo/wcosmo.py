@@ -3,6 +3,8 @@ Core implementation of cosmology functionality.
 """
 
 import numpy as xp
+from astropy.cosmology import FlatLambdaCDM as _FlatLambdaCDM
+from astropy.cosmology import FlatwCDM as _FlatwCDM
 
 from .taylor import analytic_integral
 from .utils import (
@@ -431,64 +433,39 @@ def comoving_volume(z, H0, Om0, w0=-1):
     return 4 / 3 * xp.pi * comoving_distance(z, H0, Om0, w0=w0) ** 3
 
 
-@autodoc
-class FlatwCDM:
-    r"""
-    Implementation of flat wCDM cosmology to (approximately) match the
-    :code:`astropy` API.
-
-    .. math::
-
-        E(z) = \sqrt{{\Omega_{{m,0}} (1 + z)^3
-        + (1 - \Omega_{{m,0}}) (1 + z)^{{3(1 + w_0)}}}}
-
-    Parameters
-    ----------
-    {H0}
-    {Om0}
-    {w0}
-    {zmin}
-    {zmax}
-    {name}
-    {meta}
+class WCosmoMixin:
     """
+    Mixin to provide access to the :code:`wcosmo` functionality to :code:`astropy`
+    cosmology objects.
 
-    def __init__(
-        self,
-        H0,
-        Om0,
-        w0,
-        *,
-        zmin=1e-4,
-        zmax=100,
-        name=None,
-        meta=None,
-    ):
-        self.H0 = H0
-        self.Om0 = Om0
-        self.w0 = w0
-        self.zmin = zmin
-        self.zmax = zmax
-        self.name = name
-        self.meta = meta
+    We clobber all units to ensure consistent behavior across backends.
+
+    Notes
+    -----
+
+    The following methods are not compatible with non-:code:`numpy` backends:
+    - :code:`kpc_comoving_per_arcmin`
+    - :code:`kpc_proper_per_arcmin`
+    - :code:`nu_relative_density`
+
+    These methods internally coerce the input to :code:`numpy` arrays if the backend
+    supports implicit conversion. Additionally, we don't overwrite the various integrands
+    and other utility methods, e.g., :code:`clone`.
+
+    We include the following methods that are not present in :code:`astropy`:
+
+    - :code:`dLdH` - derivative of the luminosity distance w.r.t. the Hubble distance
+    - :code:`dDLdz` - Jacobian for the conversion of luminosity distance to redshift
+    - :code:`detector_to_source_frame` - convert masses and luminosity distance from
+      the detector frame to the source frame, also returns the jacobian,
+      see :func:`detector_to_source_frame`
+    - :code:`source_to_detector_frame` - convert masses and redshift from the source
+      frame to the detector frame, see :func:`source_to_detector_frame`
+    """
 
     @property
     def _kwargs(self):
-        return {"H0": self.H0, "Om0": self.Om0, "w0": self.w0}
-
-    @property
-    def meta(self):
-        """
-        Meta data for the cosmology to hold additional information, e.g.,
-        citation information
-        """
-        return self._meta
-
-    @meta.setter
-    def meta(self, meta):
-        if meta is None:
-            meta = {}
-        self._meta = meta
+        return {"H0": self.H0.value, "Om0": self.Om0, "w0": self.w0}
 
     @property
     def hubble_distance(self):
@@ -590,41 +567,64 @@ class FlatwCDM:
         """
         return self.lookback_time(zmax) - self.lookback_time(z)
 
+    comoving_transverse_distance = comoving_distance
 
-@autodoc
-class FlatLambdaCDM(FlatwCDM):
-    r"""
-    Implementation of a flat :math:`\Lambda\rm{{CDM}}` cosmology to
-    (approximately) match the :code:`astropy` API. This is the same as
-    the :code:`FlatwCDM` with :math:`w_0=-1`.
+    @autodoc
+    def distmod(self, z):
+        """
+        Compute the distance modulus at redshift z.
 
-    .. math::
+        Parameters
+        ----------
+        {z}
 
-        E(z) = \sqrt{{\Omega_{{m,0}} (1 + z)^3 + (1 - \Omega_{{m,0}})}}
+        Returns
+        -------
+        distmod: array_like
+            The distance modulus (units: mag)
+        """
+        return 5 * xp.log10(xp.abs(self.luminosity_distance(z))) + 25
 
-    Parameters
-    ----------
-    {H0}
-    {Om0}
-    {zmin}
-    {zmax}
-    {name}
-    {meta}
-    """
+    @autodoc
+    def critical_density(self, z):
+        """Critical density in grams per cubic cm at redshift ``z``.
 
-    def __init__(
-        self,
-        H0,
-        Om0,
-        *,
-        zmin=1e-4,
-        zmax=100,
-        name=None,
-        meta=None,
-    ):
-        super().__init__(
-            H0=H0, Om0=Om0, w0=-1, zmin=zmin, zmax=zmax, name=name, meta=meta
-        )
+        Parameters
+        ----------
+        {z}
+
+        Returns
+        -------
+        rho: array-like
+            Critical density in g/cm^3 at each input redshift.
+        """
+        return self._critical_density0.value * (self.efunc(z)) ** 2
+
+    @autodoc
+    def de_density_scale(self, z):
+        """
+        Dark energy density at redshift z.
+
+        Parameters
+        ----------
+        {z}
+
+        Returns
+        -------
+        rho_de: array_like
+            The dark energy density at redshift z
+        """
+        return (z + 1) ** (3 * (1 + self.w0))
+
+
+class FlatwCDM(WCosmoMixin, _FlatwCDM):
+    pass
+
+
+class FlatLambdaCDM(WCosmoMixin, _FlatLambdaCDM):
+
+    def __post_init__(self):
+        self.w0 = -1.0
 
 
 Planck13 = FlatLambdaCDM(H0=67.77, Om0=0.30712, name="Planck13")

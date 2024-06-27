@@ -2,9 +2,10 @@
 Core implementation of cosmology functionality.
 """
 
+import sys
+
 import numpy as xp
-from astropy.cosmology import FlatLambdaCDM as _FlatLambdaCDM
-from astropy.cosmology import FlatwCDM as _FlatwCDM
+from astropy import cosmology as _acosmo
 
 from .taylor import analytic_integral
 from .utils import (
@@ -617,33 +618,33 @@ class WCosmoMixin:
         return (z + 1) ** (3 * (1 + self.w0))
 
 
-class FlatwCDM(WCosmoMixin, _FlatwCDM):
+class FlatwCDM(WCosmoMixin, _acosmo.FlatwCDM):
     pass
 
 
-class FlatLambdaCDM(WCosmoMixin, _FlatLambdaCDM):
+class FlatLambdaCDM(WCosmoMixin, _acosmo.FlatLambdaCDM):
 
     def __post_init__(self):
         self.w0 = -1.0
 
 
-Planck13 = FlatLambdaCDM(H0=67.77, Om0=0.30712, name="Planck13")
-Planck15 = FlatLambdaCDM(H0=67.74, Om0=0.3075, name="Planck15")
-Planck18 = FlatLambdaCDM(H0=67.66, Om0=0.30966, name="Planck18")
-WMAP1 = FlatLambdaCDM(H0=72.0, Om0=0.257, name="WMAP1")
-WMAP3 = FlatLambdaCDM(H0=70.1, Om0=0.276, name="WMAP3")
-WMAP5 = FlatLambdaCDM(H0=70.2, Om0=0.277, name="WMAP5")
-WMAP7 = FlatLambdaCDM(H0=70.4, Om0=0.272, name="WMAP7")
-WMAP9 = FlatLambdaCDM(H0=69.32, Om0=0.2865, name="WMAP9")
-available = dict(
-    Planck13=Planck13,
-    Planck15=Planck15,
-    Planck18=Planck18,
-    WMAP1=WMAP1,
-    WMAP3=WMAP3,
-    WMAP5=WMAP5,
-    WMAP7=WMAP7,
-    WMAP9=WMAP9,
-    FlatLambdaCDM=FlatLambdaCDM,
-    FlatwCDM=FlatwCDM,
-)
+def __getattr__(name):
+    alt = _acosmo.__getattr__(name)
+    cosmo = FlatLambdaCDM(**alt.parameters)
+    setattr(sys.modules[__name__], name, cosmo)
+    return cosmo
+
+
+class _Available:
+
+    def keys(self):
+        return ("FlatLambdaCDM", "FlatwCDM") + _acosmo.available
+
+    def __getitem__(self, key):
+        return getattr(sys.modules[__name__], key)
+
+    def __repr__(self):
+        return repr(self.keys())
+
+
+available = _Available()

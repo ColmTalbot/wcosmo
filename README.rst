@@ -62,7 +62,7 @@ To import an astropy-like cosmology
 
     cosmology.luminosity_distance(1)  # returns astropy Quantity
 
-Explicitly usage of :code:`astropy` units can be freely enabled/disabled.
+Explicit usage of :code:`astropy` units can be freely enabled/disabled.
 In this case, the values will have the default units for each method.
 
 .. code-block:: python

@@ -10,7 +10,6 @@ There are two main features leading to superior efficiency to :code:`astropy`:
   with Pade approximations.
 - Support for :code:`jax` and :code:`cupy` backends allow hardware
   acceleration, just-in-time compilation, and automatic differentiation.
-- We don't use explicit units, which can be a source of inefficiency.
 
 The primary limitations are:
 
@@ -18,7 +17,7 @@ The primary limitations are:
   equations of state, e.g., :code:`FlatwCDM`.
 - Approximations to the various integrals generally agree with :code:`astropy`
   at the 0.1% level.
-- The units we use are documented, but users need to be careful.
+- The :code:`astropy` units are incompatible with non-:code:`numpy` backends.
 
 Installation and contribution
 -----------------------------
@@ -54,12 +53,31 @@ for development you should follow a standard fork-and-pull workflow.
 Basic usage
 -----------
 
-To import an astropy-like cosmology (without units)
+To import an astropy-like cosmology
 
 .. code-block:: python
 
     from wcosmo import FlatwCDM
     cosmology = FlatwCDM(H0=70, Om0=0.3, w0=-1)
+
+    cosmology.luminosity_distance(1)  # returns astropy Quantity
+
+Explicitly usage of :code:`astropy` units can be freely enabled/disabled.
+In this case, the values will have the default units for each method.
+
+.. code-block:: python
+
+    from wcosmo import FlatwCDM
+    from wcosmo.utils import disable_units, enable_units
+    cosmology = FlatwCDM(H0=70, Om0=0.3, w0=-1)
+
+    disable_units()
+
+    cosmology.luminosity_distance(1)  # returns float
+
+    enable_units()
+
+    cosmology.luminosity_distance(1)  # returns astropy Quantity
 
 GWPopulation
 ^^^^^^^^^^^^

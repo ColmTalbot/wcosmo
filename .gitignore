@@ -3,3 +3,6 @@
 build/
 doc/build/
 doc/source/api/
+doc/source/examples/*.ipynb
+.coverage
+wcosmo/_version.py

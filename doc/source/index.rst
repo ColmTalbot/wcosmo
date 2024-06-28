@@ -1,25 +1,8 @@
-.. currentmodule:: wcosmo
-
 .. include:: ../../README.rst
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+   :hidden:
 
-
-.. autosummary::
-   :toctree: api
-   :template: custom-module-template.rst
-   :caption: API
-   :recursive:
-
-   wcosmo
-   utils
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`
+   Examples <examples/index>
+   API <api/index>
+   Changelog <https://github.com/ColmTalbot/wcosmo/releases>

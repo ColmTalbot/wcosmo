@@ -9,6 +9,7 @@ By changing the backend and disabling units, these classes can then be used with
 :code:`numpy`, :code:`jax`, or :code:`cupy`.
 """
 
+from dataclasses import field, dataclass
 import sys
 
 import astropy.cosmology as _acosmo
@@ -202,14 +203,14 @@ class WCosmoMixin:
         return (z + 1) ** (3 * (1 + self.w0))
 
 
+@dataclass(frozen=True)
 class FlatwCDM(WCosmoMixin, _acosmo.FlatwCDM):
     pass
 
 
+@dataclass(frozen=True)
 class FlatLambdaCDM(WCosmoMixin, _acosmo.FlatLambdaCDM):
-    def __post_init__(self):
-        super().__post_init__()
-        self.w0 = -1.0
+    w0: float = field(init=False, default=-1)
 
 
 def __getattr__(name):

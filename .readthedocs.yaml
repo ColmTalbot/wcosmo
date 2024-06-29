@@ -18,6 +18,7 @@ build:
     pre_build:
       - cp examples/wcosmo_timing.ipynb doc/source/examples/timing.ipynb
       - cp examples/wcosmo_gwtc3.ipynb doc/source/examples/gwtc3.ipynb
+      - cp examples/examples/accuracy_comparisons_with_astropy.ipynb doc/source/examples/astropy_comparisons.ipynb
 
 # Build documentation in the "docs/" directory with Sphinx
 sphinx:

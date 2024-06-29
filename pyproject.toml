@@ -27,6 +27,7 @@ dynamic = ["version"]
 test = [
     "pytest-cov",
     "gwpopulation",
+    "jax>=0.4.16",
 ]
 
 [tool.setuptools]

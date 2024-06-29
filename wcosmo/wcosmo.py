@@ -35,6 +35,7 @@ __all__ = [
     "hubble_time",
     "inv_efunc",
     "lookback_time",
+    "absorption_distance",
     "luminosity_distance",
     "source_to_detector_frame",
     "z_at_value",

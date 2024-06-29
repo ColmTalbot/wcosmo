@@ -39,8 +39,14 @@ _cosmology_docstrings_ = dict(
         (:math:`k`)""",
 )
 
-GYR_KM_PER_S_MPC = 977.7922216807891  # for converting km/s/Mpc to Gyr
-SPEED_OF_LIGHT_KM_PER_S = 299792.4580  # km/s
+__all__ = [
+    "autodoc",
+    "disable_units",
+    "enable_units",
+    "method_autodoc",
+    "maybe_jit",
+    "strip_units",
+]
 
 
 def autodoc(func):
@@ -49,6 +55,30 @@ def autodoc(func):
     """
     func.__doc__ = func.__doc__.format(**_cosmology_docstrings_)
     return func
+
+
+def disable_units():
+    """
+    Disable the use of astropy units throughout the package
+    """
+    _set_units(False)
+
+
+def enable_units():
+    """
+    Enable the use of astropy units throughout the package
+    """
+    _set_units(True)
+
+
+def _set_units(val):
+    """
+    Set the use of astropy units throughout the package
+    """
+    from . import astropy, constants
+
+    constants.USE_UNITS = val
+    astropy.USE_UNITS = val
 
 
 def method_autodoc(alt=None):
@@ -61,8 +91,15 @@ def method_autodoc(alt=None):
 
     def new_wrapper(func):
         def _strip_wcdm_parameters(doc):
+            """
+            Stripy the FlatwCDM parameters from the docstring and remove
+            the entire parameters section if it is empty after.
+            """
             for key in ["H0", "Om0", "w0"]:
                 doc = doc.replace(_cosmology_docstrings_[key], "")
+            doc = doc.replace(
+                "Parameters\n    ----------\n    \n\n    Returns", "Returns"
+            )
             return doc
 
         if alt is not None:
@@ -91,3 +128,12 @@ def maybe_jit(func, *args, **kwargs):
 
         return jit(func, *args, **kwargs)
     return func
+
+
+def strip_units(value):
+    """
+    Strip units from a value if they are present
+    """
+    if hasattr(value, "unit"):
+        return value.value
+    return value

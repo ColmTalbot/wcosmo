@@ -9,8 +9,8 @@ By changing the backend and disabling units, these classes can then be used with
 :code:`numpy`, :code:`jax`, or :code:`cupy`.
 """
 
-from dataclasses import field, dataclass
 import sys
+from dataclasses import dataclass, field
 
 import astropy.cosmology as _acosmo
 import numpy as xp

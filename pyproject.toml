@@ -19,6 +19,7 @@ classifiers = [
 dependencies = [
     "numpy",
     "scipy",
+    "astropy>=6",
 ]
 dynamic = ["version"]
 
@@ -26,7 +27,7 @@ dynamic = ["version"]
 test = [
     "pytest-cov",
     "gwpopulation",
-    "astropy",
+    "jax>=0.4.16",
 ]
 
 [tool.setuptools]

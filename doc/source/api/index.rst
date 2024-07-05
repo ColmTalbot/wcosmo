@@ -9,6 +9,7 @@ API Reference
    :caption: API
    :recursive:
 
+   astropy
    taylor
    utils
    wcosmo

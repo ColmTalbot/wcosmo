@@ -16,7 +16,7 @@ The primary limitations are:
 - Only flat cosmologies are supported with two components with constant
   equations of state, e.g., :code:`FlatwCDM`.
 - Approximations to the various integrals generally agree with :code:`astropy`
-  at the 0.1% level.
+  at the <0.1% level.
 - The :code:`astropy` units are incompatible with non-:code:`numpy` backends.
 
 Installation and contribution
@@ -57,27 +57,26 @@ To import an astropy-like cosmology
 
 .. code-block:: python
 
-    from wcosmo import FlatwCDM
-    cosmology = FlatwCDM(H0=70, Om0=0.3, w0=-1)
-
-    cosmology.luminosity_distance(1)  # returns astropy Quantity
+    >>> from wcosmo import FlatwCDM
+    >>> cosmology = FlatwCDM(H0=70, Om0=0.3, w0=-1)
+    >>> cosmology.luminosity_distance(1)
 
 Explicit usage of :code:`astropy` units can be freely enabled/disabled.
 In this case, the values will have the default units for each method.
 
 .. code-block:: python
 
-    from wcosmo import FlatwCDM
-    from wcosmo.utils import disable_units, enable_units
-    cosmology = FlatwCDM(H0=70, Om0=0.3, w0=-1)
+    >>> from wcosmo import FlatwCDM
+    >>> from wcosmo.utils import disable_units, enable_units
+    >>> cosmology = FlatwCDM(H0=70, Om0=0.3, w0=-1)
 
-    disable_units()
+    >>> disable_units()
+    >>> cosmology.luminosity_distance(1)
+    6607.657732077576
 
-    cosmology.luminosity_distance(1)  # returns float
-
-    enable_units()
-
-    cosmology.luminosity_distance(1)  # returns astropy Quantity
+    >>> enable_units()
+    >>> cosmology.luminosity_distance(1)
+    <Quantity 6607.65773208 Mpc>
 
 GWPopulation
 ^^^^^^^^^^^^
@@ -94,17 +93,17 @@ The backend can be switched automatically using, e.g.,
 
 .. code-block:: python
 
-    import gwpopulation
-    gwpopulation.backend.set_backend("jax")
+    >>> import gwpopulation
+    >>> gwpopulation.backend.set_backend("jax")
 
 Manual backend setting can be done as follows:
 
 .. code-block:: python
 
-    import jax.numpy as jnp
-    from jax.scipy.linalg.toeplitz import toeplitz
+    >>> import jax.numpy as jnp
+    >>> from jax.scipy.linalg.toeplitz import toeplitz
 
-    from wcosmo import wcosmo, utils
-    wcosmo.xp = jnp
-    utils.xp = jnp
-    utils.toeplitz = toeplitz
+    >>> from wcosmo import wcosmo, utils
+    >>> wcosmo.xp = jnp
+    >>> utils.xp = jnp
+    >>> utils.toeplitz = toeplitz

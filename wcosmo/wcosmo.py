@@ -8,7 +8,7 @@ Functional implementation of cosmological parameters.
     when using :code:`numpy`, but all of the code can also be used without
     units. Special care is needed with :func:`hubble_distance` and
     :func:`hubble_time` as these functions use constants which have units
-    unless :func:`disable_units` has been called.
+    unless :func:`wcosmo.utils.disable_units` has been called.
 """
 
 import numpy as xp

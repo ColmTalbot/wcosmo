@@ -40,7 +40,7 @@ jobs:
       run: |
         conda install mamba
         mamba install pip setuptools pre-commit setuptools_scm
-        mamba install jax numpy scipy astropy gwpopulation pytest-cov
+        mamba install jax numpy scipy astropy "gwpopulation>=1" pytest-cov
         mamba update --all
         pre-commit install
     - name: Install gwpopulation

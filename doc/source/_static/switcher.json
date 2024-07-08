@@ -4,7 +4,13 @@
       "url": "https://wcosmo.readthedocs.io/en/latest/"
     },
     {
-      "name": "0.2.2 (stable)",
+      "name": "0.3.0 (stable)",
+      "version": "v0.3.0",
+      "url": "https://wcosmo.readthedocs.io/en/stable/",
+      "preferred": true
+    },
+    {
+      "name": "0.2.2",
       "version": "v0.2.2",
       "url": "https://wcosmo.readthedocs.io/en/stable/",
       "preferred": true

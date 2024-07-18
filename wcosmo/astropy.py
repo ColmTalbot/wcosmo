@@ -13,6 +13,7 @@ import sys
 from dataclasses import dataclass, field
 
 import astropy.cosmology as _acosmo
+from astropy import units
 import numpy as xp
 
 from .utils import autodoc, method_autodoc, strip_units
@@ -24,7 +25,7 @@ __all__ = [
     "FlatwCDM",
     "FlatLambdaCDM",
     "available",
-] + list(_acosmo.available)
+]
 
 
 class WCosmoMixin:
@@ -59,15 +60,12 @@ class WCosmoMixin:
       frame to the detector frame, see :func:`source_to_detector_frame`
     """
 
-    def __getattribute__(self, name):
-        value = super().__getattribute__(name)
-        if not USE_UNITS:
-            value = strip_units(value)
-        return value
-
     @property
     def _kwargs(self):
-        return {"H0": self.H0, "Om0": self.Om0, "w0": self.w0}
+        kwargs = {"H0": self.H0, "Om0": self.Om0, "w0": self.w0}
+        if not USE_UNITS:
+            kwargs = {key: strip_units(value) for key, value in kwargs.items()}
+        return kwargs
 
     @property
     @method_autodoc(alt=hubble_time)
@@ -184,7 +182,10 @@ class WCosmoMixin:
             The distance modulus (units: mag)
         """
         distance = strip_units(self.luminosity_distance(z))
-        return 5 * xp.log10(xp.abs(distance)) + 25
+        value = 5 * xp.log10(xp.abs(distance)) + 25
+        if USE_UNITS:
+            value <<= units.mag
+        return value
 
     @autodoc
     def de_density_scale(self, z):
@@ -203,21 +204,29 @@ class WCosmoMixin:
         return (z + 1) ** (3 * (1 + self.w0))
 
 
+# give these classes dummy names to avoid some kind of namespace collision
+# that overwrites the astropy classes, see,
+# https://github.com/ColmTalbot/wcosmo/issues/15
 @dataclass(frozen=True)
-class FlatwCDM(WCosmoMixin, _acosmo.FlatwCDM):
+class _FlatwCDM(WCosmoMixin, _acosmo.FlatwCDM):
     pass
 
 
 @dataclass(frozen=True)
-class FlatLambdaCDM(WCosmoMixin, _acosmo.FlatLambdaCDM):
+class _FlatLambdaCDM(WCosmoMixin, _acosmo.FlatLambdaCDM):
     w0: float = field(init=False, default=-1)
 
 
+FlatwCDM = _FlatwCDM
+FlatLambdaCDM = _FlatLambdaCDM
+
+
 def __getattr__(name):
-    alt = _acosmo.__getattr__(name)
-    cosmo = FlatLambdaCDM(**alt.parameters)
-    setattr(sys.modules[__name__], name, cosmo)
-    return cosmo
+    if name not in __all__:
+        alt = _acosmo.__getattr__(name)
+        cosmo = _FlatLambdaCDM(**alt.parameters)
+        setattr(sys.modules[__name__], name, cosmo)
+        return cosmo
 
 
 class _Available:

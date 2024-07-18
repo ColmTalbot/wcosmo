@@ -13,8 +13,8 @@ import sys
 from dataclasses import dataclass, field
 
 import astropy.cosmology as _acosmo
-from astropy import units
 import numpy as xp
+from astropy import units
 
 from .utils import autodoc, method_autodoc, strip_units
 from .wcosmo import *

@@ -31,5 +31,5 @@ _VALUES = dict(
 _UNITS = dict(
     c_km_per_s=units.Unit("km / s"),
     gyr_km_per_s_mpc=units.Unit("Gyr km / (s Mpc)"),
-    steradian=units.Unit("sr")
+    steradian=units.Unit("sr"),
 )

@@ -3,6 +3,7 @@ Helper functions that are not directly relevant to cosmology.
 """
 
 import numpy as np
+
 xp = np
 
 _cosmology_docstrings_ = dict(

@@ -2,7 +2,8 @@
 Helper functions that are not directly relevant to cosmology.
 """
 
-import numpy as xp
+import numpy as np
+xp = np
 
 _cosmology_docstrings_ = dict(
     z="""z: array_like
@@ -133,7 +134,11 @@ def maybe_jit(func, *args, **kwargs):
 def strip_units(value):
     """
     Strip units from a value if they are present
+    also make sure that the result is not a
+    numpy.float64.
     """
     if hasattr(value, "unit"):
-        return value.value
+        value = value.value
+    if isinstance(value, np.float64):
+        value = value.item()
     return value

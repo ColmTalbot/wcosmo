@@ -4,10 +4,12 @@ Utilities based on the Taylor expansion of the functions of the form
 These functions and their integral are estimated using the Pade approximation.
 """
 
-import numpy as xp
+import numpy as np
 from scipy.linalg import toeplitz
 
 from .utils import autodoc
+
+xp = np
 
 __all__ = [
     "analytic_integral",
@@ -176,7 +178,10 @@ def indefinite_integral(z, Om0, w0=-1, zpower=0):
     x = (1 - Om0) / Om0 * (1 + z) ** (3 * w0)
     p, q = flat_wcdm_pade_coefficients(w0=w0, zpower=zpower)
     normalization = -2 / Om0**0.5 / (1 + z) ** (0.5 - zpower)
-    return normalization * xp.polyval(p, x) / xp.polyval(q, x)
+    result = normalization * xp.polyval(p, x) / xp.polyval(q, x)
+    if isinstance(result, np.float64):
+        result = result.item()
+    return result
 
 
 @autodoc

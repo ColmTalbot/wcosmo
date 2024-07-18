@@ -137,7 +137,7 @@ def hubble_parameter(z, H0, Om0, w0=-1):
     H(z): array_like
         The Hubble parameter
     """
-    return hubble_distance(H0=H0) * inv_efunc(z=z, Om0=Om0, w0=w0)
+    return H0 * efunc(z=z, Om0=Om0, w0=w0)
 
 
 @maybe_jit

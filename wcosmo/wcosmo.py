@@ -12,6 +12,7 @@ Functional implementation of cosmological parameters.
 """
 
 import numpy as xp
+from astropy import units
 
 from . import constants
 from .taylor import analytic_integral
@@ -339,7 +340,7 @@ def differential_comoving_volume(z, H0, Om0, w0=-1):
     dC = comoving_distance(z, H0, Om0, w0=w0)
     Ez_i = inv_efunc(z, Om0, w0=w0)
     D_H = hubble_distance(H0)
-    return dC**2 * D_H * Ez_i
+    return dC**2 * D_H * Ez_i / constants.steradian
 
 
 @maybe_jit

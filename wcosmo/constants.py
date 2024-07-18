@@ -18,7 +18,7 @@ def __getattr__(name):
     if value is None:
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
     if USE_UNITS:
-        value = value * _UNITS[name]
+        value = value << _UNITS[name]
     return value
 
 
@@ -26,8 +26,10 @@ USE_UNITS = True
 _VALUES = dict(
     c_km_per_s=299792.4580,
     gyr_km_per_s_mpc=977.7922216807891,
+    steradian=1,
 )
 _UNITS = dict(
     c_km_per_s=units.Unit("km / s"),
     gyr_km_per_s_mpc=units.Unit("Gyr km / (s Mpc)"),
+    steradian=units.Unit("sr")
 )

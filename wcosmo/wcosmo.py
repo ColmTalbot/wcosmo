@@ -1,30 +1,25 @@
 """
-Core implementation of cosmology functionality.
+Functional implementation of cosmological parameters.
+
+.. Note::
+
+    This module is intended to be used as a functional alternative to the
+    :code:`astropy` class-based method. In general, units will be propagated
+    when using :code:`numpy`, but all of the code can also be used without
+    units. Special care is needed with :func:`hubble_distance` and
+    :func:`hubble_time` as these functions use constants which have units
+    unless :func:`wcosmo.utils.disable_units` has been called.
 """
 
 import numpy as xp
+from astropy import units
 
+from . import constants
 from .taylor import analytic_integral
-from .utils import (
-    GYR_KM_PER_S_MPC,
-    SPEED_OF_LIGHT_KM_PER_S,
-    autodoc,
-    maybe_jit,
-    method_autodoc,
-)
+from .utils import autodoc, maybe_jit
 
 __all__ = [
-    "FlatwCDM",
-    "FlatLambdaCDM",
-    "Planck13",
-    "Planck15",
-    "Planck18",
-    "WMAP1",
-    "WMAP3",
-    "WMAP5",
-    "WMAP7",
-    "WMAP9",
-    "available",
+    "absorption_distance",
     "comoving_distance",
     "comoving_volume",
     "detector_to_source_frame",
@@ -32,6 +27,7 @@ __all__ = [
     "dDLdz",
     "efunc",
     "hubble_distance",
+    "hubble_parameter",
     "hubble_time",
     "inv_efunc",
     "lookback_time",
@@ -102,7 +98,7 @@ def hubble_distance(H0):
     D_H: float
         The Hubble distance in Mpc
     """
-    return SPEED_OF_LIGHT_KM_PER_S / H0
+    return constants.c_km_per_s / H0
 
 
 @autodoc
@@ -119,7 +115,7 @@ def hubble_time(H0):
     t_H: float
         The Hubble time in Gyr
     """
-    return GYR_KM_PER_S_MPC / H0
+    return constants.gyr_km_per_s_mpc / H0
 
 
 @autodoc
@@ -143,7 +139,7 @@ def hubble_parameter(z, H0, Om0, w0=-1):
     H(z): array_like
         The Hubble parameter
     """
-    return hubble_distance(H0=H0) * inv_efunc(z=z, H0=H0, Om0=Om0, w0=w0)
+    return H0 * efunc(z=z, Om0=Om0, w0=w0)
 
 
 @maybe_jit
@@ -305,7 +301,7 @@ def z_at_value(func, fval, zmin=1e-4, zmax=100, **kwargs):
     func: callable
         The function to evaluate, e.g., :code:`Planck15.luminosity_distance`,
         this should take :code:`fval` as the only input.
-    fval: float
+    fval: float | array-like
         The value of the function at the desired redshift
     {zmin}
     {zmax}
@@ -316,9 +312,7 @@ def z_at_value(func, fval, zmin=1e-4, zmax=100, **kwargs):
         The redshift at which the function equals the desired value
     """
     zs = xp.logspace(xp.log10(zmin), xp.log10(zmax), 1000)
-    return xp.interp(
-        xp.asarray(fval), func(zs, **kwargs), zs, left=zmin, right=zmax, period=None
-    )
+    return xp.interp(fval, func(zs, **kwargs), zs, left=zmin, right=zmax, period=None)
 
 
 @maybe_jit
@@ -347,7 +341,7 @@ def differential_comoving_volume(z, H0, Om0, w0=-1):
     dC = comoving_distance(z, H0, Om0, w0=w0)
     Ez_i = inv_efunc(z, Om0, w0=w0)
     D_H = hubble_distance(H0)
-    return dC**2 * D_H * Ez_i
+    return dC**2 * D_H * Ez_i / constants.steradian
 
 
 @maybe_jit
@@ -377,9 +371,7 @@ def detector_to_source_frame(m1z, m2z, dL, H0, Om0, w0=-1, zmin=1e-4, zmax=100):
         The primary and secondary masses in the source frame and the redshift
     """
     z = z_at_value(luminosity_distance, dL, zmin=zmin, zmax=zmax, H0=H0, Om0=Om0, w0=w0)
-    m1 = m1z / (1 + z)
-    m2 = m2z / (1 + z)
-    return m1, m2, z
+    return m1z / (1 + z), m2z / (1 + z), z
 
 
 @maybe_jit
@@ -430,221 +422,3 @@ def comoving_volume(z, H0, Om0, w0=-1):
         The comoving volume in :math:`\rm{{Gpc}}^3`
     """
     return 4 / 3 * xp.pi * comoving_distance(z, H0, Om0, w0=w0) ** 3
-
-
-@autodoc
-class FlatwCDM:
-    r"""
-    Implementation of flat wCDM cosmology to (approximately) match the
-    :code:`astropy` API.
-
-    .. math::
-
-        E(z) = \sqrt{{\Omega_{{m,0}} (1 + z)^3
-        + (1 - \Omega_{{m,0}}) (1 + z)^{{3(1 + w_0)}}}}
-
-    Parameters
-    ----------
-    {H0}
-    {Om0}
-    {w0}
-    {zmin}
-    {zmax}
-    {name}
-    {meta}
-    """
-
-    def __init__(
-        self,
-        H0,
-        Om0,
-        w0,
-        *,
-        zmin=1e-4,
-        zmax=100,
-        name=None,
-        meta=None,
-    ):
-        self.H0 = H0
-        self.Om0 = Om0
-        self.w0 = w0
-        self.zmin = zmin
-        self.zmax = zmax
-        self.name = name
-        self.meta = meta
-
-    @property
-    def _kwargs(self):
-        return {"H0": self.H0, "Om0": self.Om0, "w0": self.w0}
-
-    @property
-    def meta(self):
-        """
-        Meta data for the cosmology to hold additional information, e.g.,
-        citation information
-        """
-        return self._meta
-
-    @meta.setter
-    def meta(self, meta):
-        if meta is None:
-            meta = {}
-        self._meta = meta
-
-    @property
-    def hubble_distance(self):
-        """
-        Compute the Hubble distance :math:`D_H = c H_0^{-1}` in Mpc.
-
-        Returns
-        -------
-        D_H: float
-            The Hubble distance in Mpc
-        """
-        return hubble_distance(self.H0)
-
-    @method_autodoc(alt=luminosity_distance)
-    def luminosity_distance(self, z):
-        return luminosity_distance(z, **self._kwargs)
-
-    @autodoc
-    def dLdH(self, z):
-        r"""
-        Derivative of the luminosity distance w.r.t. the Hubble distance.
-
-        .. math::
-
-            \frac{{dd_L}}{{dd_H}} = \frac{{d_L}}{{d_H}}
-
-        Parameters
-        ----------
-        {z}
-
-        Returns
-        -------
-        array_like:
-            The derivative of the luminosity distance w.r.t., the Hubble distance
-        """
-        return self.luminosity_distance(z) / self.hubble_distance
-
-    @method_autodoc(alt=dDLdz)
-    def dDLdz(self, z):
-        return dDLdz(z, **self._kwargs)
-
-    @method_autodoc(alt=differential_comoving_volume)
-    def differential_comoving_volume(self, z):
-        return differential_comoving_volume(z, **self._kwargs)
-
-    @method_autodoc(alt=detector_to_source_frame)
-    def detector_to_source_frame(self, m1z, m2z, dL):
-        return detector_to_source_frame(
-            m1z, m2z, dL, **self._kwargs, zmin=self.zmin, zmax=self.zmax
-        )
-
-    @method_autodoc(alt=source_to_detector_frame)
-    def source_to_detector_frame(self, m1, m2, z):
-        return source_to_detector_frame(m1, m2, z, **self._kwargs)
-
-    @method_autodoc(alt=efunc)
-    def efunc(self, z):
-        return efunc(z, self.Om0, self.w0)
-
-    @method_autodoc(alt=inv_efunc)
-    def inv_efunc(self, z):
-        return inv_efunc(z, self.Om0, self.w0)
-
-    @method_autodoc(alt=hubble_parameter)
-    def H(self, z):
-        return hubble_parameter(z, **self._kwargs)
-
-    @method_autodoc(alt=comoving_distance)
-    def comoving_distance(self, z):
-        return comoving_distance(z, **self._kwargs)
-
-    @method_autodoc(alt=comoving_volume)
-    def comoving_volume(self, z):
-        return comoving_volume(z, **self._kwargs)
-
-    @method_autodoc(alt=lookback_time)
-    def lookback_time(self, z):
-        return lookback_time(z, **self._kwargs)
-
-    @method_autodoc(alt=absorption_distance)
-    def absorption_distance(self, z):
-        return absorption_distance(z, self.Om0, self.w0)
-
-    @autodoc
-    def age(self, z, zmax=1e5):
-        """
-        Compute the age of the universe at redshift z.
-
-        Parameters
-        ----------
-        {z}
-        zmax: float, optional
-            The maximum redshift to consider, default is 1e5
-
-        Returns
-        -------
-        age: array_like
-            The age of the universe in Gyr
-        """
-        return self.lookback_time(zmax) - self.lookback_time(z)
-
-
-@autodoc
-class FlatLambdaCDM(FlatwCDM):
-    r"""
-    Implementation of a flat :math:`\Lambda\rm{{CDM}}` cosmology to
-    (approximately) match the :code:`astropy` API. This is the same as
-    the :code:`FlatwCDM` with :math:`w_0=-1`.
-
-    .. math::
-
-        E(z) = \sqrt{{\Omega_{{m,0}} (1 + z)^3 + (1 - \Omega_{{m,0}})}}
-
-    Parameters
-    ----------
-    {H0}
-    {Om0}
-    {zmin}
-    {zmax}
-    {name}
-    {meta}
-    """
-
-    def __init__(
-        self,
-        H0,
-        Om0,
-        *,
-        zmin=1e-4,
-        zmax=100,
-        name=None,
-        meta=None,
-    ):
-        super().__init__(
-            H0=H0, Om0=Om0, w0=-1, zmin=zmin, zmax=zmax, name=name, meta=meta
-        )
-
-
-Planck13 = FlatLambdaCDM(H0=67.77, Om0=0.30712, name="Planck13")
-Planck15 = FlatLambdaCDM(H0=67.74, Om0=0.3075, name="Planck15")
-Planck18 = FlatLambdaCDM(H0=67.66, Om0=0.30966, name="Planck18")
-WMAP1 = FlatLambdaCDM(H0=72.0, Om0=0.257, name="WMAP1")
-WMAP3 = FlatLambdaCDM(H0=70.1, Om0=0.276, name="WMAP3")
-WMAP5 = FlatLambdaCDM(H0=70.2, Om0=0.277, name="WMAP5")
-WMAP7 = FlatLambdaCDM(H0=70.4, Om0=0.272, name="WMAP7")
-WMAP9 = FlatLambdaCDM(H0=69.32, Om0=0.2865, name="WMAP9")
-available = dict(
-    Planck13=Planck13,
-    Planck15=Planck15,
-    Planck18=Planck18,
-    WMAP1=WMAP1,
-    WMAP3=WMAP3,
-    WMAP5=WMAP5,
-    WMAP7=WMAP7,
-    WMAP9=WMAP9,
-    FlatLambdaCDM=FlatLambdaCDM,
-    FlatwCDM=FlatwCDM,
-)

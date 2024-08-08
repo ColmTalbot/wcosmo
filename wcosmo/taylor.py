@@ -236,7 +236,7 @@ def analytic_integral(z, Om0, w0=-1, zpower=0):
 
     .. math::
 
-        t_{{L}} = t_{{H}}\int_{{0}}^{{z}} \frac{dz'}{(1+z)E(z')}
+        t_{{L}} = t_{{H}}\int_{{0}}^{{z}} \frac{{dz'}}{{(1+z)E(z')}}
 
     where :math:`t_L` is the Hubble distance. In this case, :math:`k=-1`
 
@@ -254,8 +254,8 @@ def analytic_integral(z, Om0, w0=-1, zpower=0):
 
     .. math::
 
-        X(z, \Omega_m) = \int_0^{z} \frac{dz' (1+z')^2}{
-            \sqrt{\Omega_m(1+z'^3) + (1 - \Omega_m)}}
+        X(z, \Omega_m) = \int_0^{z} \frac{{dz' (1+z')^2}}{{
+            \sqrt{{\Omega_m(1+z'^3) + (1 - \Omega_m)}}}}
 
     Here, :math:`k=2` and there are no factors of the Hubble distance.
 

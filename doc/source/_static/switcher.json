@@ -9,7 +9,8 @@
       "url": "https://wcosmo.readthedocs.io/en/stable/",
       "preferred": true
     },
-      "name": "0.3.0",
+    { 
+     "name": "0.3.0",
       "version": "v0.3.0",
       "url": "https://wcosmo.readthedocs.io/en/stable/",
       "preferred": true

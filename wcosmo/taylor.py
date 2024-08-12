@@ -267,7 +267,7 @@ def analytic_integral(z, Om0, w0=-1, zpower=0):
 
     .. math::
 
-        X(z, \Omega_m) = \int_0^{z} \frac{{dz' (1+z')^2}}{{
+        X(z, \Omega_m) = \int_0^z \frac{{dz' (1+z')^2}}{{
             \sqrt{{\Omega_m(1+z'^3) + (1 - \Omega_m)}}}}
 
     Here, :math:`k=2` and there are no factors of the Hubble distance.

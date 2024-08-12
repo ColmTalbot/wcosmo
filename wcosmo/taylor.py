@@ -237,7 +237,7 @@ def analytic_integral(z, Om0, w0=-1, zpower=0):
     >>> ap_cosmo.comoving_distance(2)
     5179.8621 Mpc
 
-    This is how :function:`comoving_distance` is implemented in ``wcosmo``, which gives the same result
+    This is how :func:`comoving_distance` is implemented in ``wcosmo``, which gives the same result
 
     >>> wcosmo.comoving_distance(2,H0=70,Om0=0.3)
     5179.8621

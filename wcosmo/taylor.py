@@ -235,7 +235,7 @@ def analytic_integral(z, Om0, w0=-1, zpower=0):
     >>> ap_cosmo = FlatLambdaCDM(H0=70,Om0=0.3)
     >>> ap_cosmo.comoving_distance(2)
 
-    This is how :function:`comoving_distance` is implemented in ``wcosmo``.
+    This is how :func:`comoving_distance` is implemented in ``wcosmo``.
 
     As another example, the lookback time :math:`t_L` is given by
 

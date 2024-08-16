@@ -69,7 +69,7 @@ class WCosmoMixin:
 
     @property
     def _kwargs(self):
-        kwargs = {"H0": self.H0, "Om0": self.Om0, "w0": self.w0}
+        kwargs = {"H0": self.H0, "Om0": self.Om0, "w0": self.w0, "method": self.method}
         if not USE_UNITS:
             kwargs = {key: strip_units(value) for key, value in kwargs.items()}
         return kwargs
@@ -136,7 +136,9 @@ class WCosmoMixin:
 
     @method_autodoc(alt=hubble_parameter)
     def H(self, z):
-        return hubble_parameter(z, **self._kwargs)
+        kwargs = self._kwargs
+        kwargs.pop("method")
+        return hubble_parameter(z, **kwargs)
 
     @method_autodoc(alt=comoving_distance)
     def comoving_distance(self, z):

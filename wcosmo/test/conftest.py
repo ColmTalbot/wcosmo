@@ -32,3 +32,8 @@ def units(request):
     else:
         disable_units()
     return request.param
+
+
+@pytest.fixture(params=["pade", "analytic"])
+def method(request):
+    return request.param

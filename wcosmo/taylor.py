@@ -66,6 +66,30 @@ def pade(an, m, n=None):
     return p[::-1], q[::-1]
 
 
+def _binomial_coefficients():
+    return xp.array(
+        [
+            1,
+            -1 / 2,
+            3 / 8,
+            -5 / 16,
+            35 / 128,
+            -63 / 256,
+            231 / 1024,
+            -429 / 2048,
+            6435 / 32768,
+            -12155 / 65536,
+            46189 / 262144,
+            -88179 / 524288,
+            676039 / 4194304,
+            -1300075 / 8388608,
+            5014575 / 33554432,
+            -9694845 / 67108864,
+            300540195 / 268435456,
+        ]
+    )
+
+
 @autodoc
 def flat_wcdm_taylor_expansion(w0, zpower=0):
     r"""
@@ -89,28 +113,9 @@ def flat_wcdm_taylor_expansion(w0, zpower=0):
     array_like
         The Taylor expansion coefficients.
     """
-    power = 1 - 2 * zpower
-    return xp.array(
-        [
-            w0**0 / power,
-            -1 / (2 * (power - 6 * w0)),
-            3 / (8 * (power - 12 * w0)),
-            -5 / (16 * (power - 18 * w0)),
-            35 / (128 * (power - 24 * w0)),
-            -63 / (256 * (power - 30 * w0)),
-            231 / (1024 * (power - 36 * w0)),
-            -429 / (2048 * (power - 42 * w0)),
-            6435 / (32768 * (power - 48 * w0)),
-            -12155 / (65536 * (power - 54 * w0)),
-            46189 / (262144 * (power - 60 * w0)),
-            -88179 / (524288 * (power - 66 * w0)),
-            676039 / (4194304 * (power - 72 * w0)),
-            -1300075 / (8388608 * (power - 78 * w0)),
-            5014575 / (33554432 * (power - 84 * w0)),
-            -9694845 / (67108864 * (power - 90 * w0)),
-            300540195 / (268435456 * (power - 96 * w0)),
-        ]
-    )
+    what = (w0 + abs(w0)) / 2
+    denominator = 1 - 2 * zpower + 6 * abs(w0) * xp.arange(0, 17) + 3 * what
+    return _binomial_coefficients() / denominator
 
 
 @autodoc
@@ -175,10 +180,14 @@ def indefinite_integral(z, Om0, w0=-1, zpower=0):
     I: array_like
         The indefinite integral of :math:`(1+z)^k / E(z)`
     """
-    x = (1 - Om0) / Om0 * (1 + z) ** (3 * w0)
     p, q = flat_wcdm_pade_coefficients(w0=w0, zpower=zpower)
-    normalization = -2 / Om0**0.5 / (1 + z) ** (0.5 - zpower)
-    result = normalization * xp.polyval(p, x) / xp.polyval(q, x)
+    what = (w0 + abs(w0)) / 2
+    sign = xp.sign(w0)
+    abs_sign = abs(sign)
+    gamma = (Om0 ** (sign - abs_sign) * (1 - Om0) ** (-sign - abs_sign)) ** 0.25
+    normalization = -2 * gamma * (1 + z) ** (zpower - 0.5 - 3 * what / 2)
+    x = (Om0 / (1 - Om0)) ** sign * (1 + z) ** (-3 * abs(w0))
+    result = normalization * (xp.polyval(p, x) / xp.polyval(q, x)) ** abs_sign
     if isinstance(result, np.float64):
         result = result.item()
     return result

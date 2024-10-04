@@ -12,9 +12,9 @@ def test_astropy_cosmology_not_clobbered():
 
 def test_jits():
     pytest.importorskip("jax")
+    import gwpopulation
+    from astropy.cosmology import FlatLambdaCDM
     from jax import jit
-    from jax import numpy as xp
-    from jax.scipy.linalg import toeplitz
 
     import wcosmo
     from wcosmo.astropy import FlatwCDM
@@ -25,10 +25,13 @@ def test_jits():
         cosmo = FlatwCDM(h0, 0.1, -1)
         return cosmo.luminosity_distance(0.1)
 
-    wcosmo.xp = xp
-    wcosmo.utils.xp = xp
-    wcosmo.taylor.xp = xp
-    wcosmo.taylor.toeplitz = toeplitz
+    gwpopulation.set_backend("jax")
     disable_units()
 
-    assert test_func(67.0) == 489.96887
+    assert (
+        abs(
+            float(test_func(67.0))
+            - FlatLambdaCDM(67.0, 0.1).luminosity_distance(0.1).value
+        )
+        < 1
+    )

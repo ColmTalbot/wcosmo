@@ -26,16 +26,22 @@ EPS = 1e-2
 
 
 @pytest.mark.parametrize("func", funcs)
-def test_redshift_function(cosmo, func, backend, units):
+def test_redshift_function(cosmo, func, backend, units, method):
     if units and (backend != "numpy"):
         pytest.skip()
-    ours = astropy.available[cosmo]
-    theirs = getattr(cosmology, cosmo)
+
+    instance = astropy.available[cosmo]
+    alt = getattr(cosmology, cosmo)
 
     redshifts = np.linspace(1e-3, 10, 1000)
 
-    ours = to_numpy(getattr(ours, func)(redshifts))
-    theirs = getattr(theirs, func)(redshifts)
+    object.__setattr__(instance, "method", method)
+
+    ours = to_numpy(getattr(instance, func)(redshifts))
+    theirs = getattr(alt, func)(redshifts)
+
+    object.__setattr__(instance, "method", "pade")
+
     if not units:
         theirs = strip_units(theirs)
     elif hasattr(theirs, "unit"):
@@ -45,11 +51,14 @@ def test_redshift_function(cosmo, func, backend, units):
 
 
 @pytest.mark.parametrize("func", funcs[:3])
-def test_z_at_value(cosmo, func, backend):
+def test_z_at_value(cosmo, func, backend, method):
     disable_units()
     from gwpopulation.utils import xp
 
-    ours = getattr(astropy.available[cosmo], func)
+    instance = astropy.available[cosmo]
+    object.__setattr__(instance, "method", method)
+
+    ours = getattr(instance, func)
     theirs = getattr(getattr(cosmology, cosmo), func)
 
     redshifts = np.linspace(1e-3, 10, 10)
@@ -62,6 +71,9 @@ def test_z_at_value(cosmo, func, backend):
 
     ours = wcosmo.z_at_value(ours, ovals)
     theirs = cosmology.z_at_value(theirs, vals).value
+
+    object.__setattr__(instance, "method", "pade")
+
     assert max(abs(ours - theirs) / theirs) < EPS
 
 

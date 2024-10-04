@@ -19,7 +19,7 @@ classifiers = [
 dependencies = [
     "numpy",
     "scipy",
-    "astropy>=6",
+    "astropy>=6.1",
 ]
 dynamic = ["version"]
 

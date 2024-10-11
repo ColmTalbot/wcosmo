@@ -363,7 +363,9 @@ class FlatLambdaCDM(WCosmoMixin):
         self.name = name
         self.meta = meta
 
+
 Planck15_LAL = FlatLambdaCDM(H0=67.90, Om0=0.3065, name="Planck15_LAL")
+
 
 def __getattr__(name):
     if name not in __all__:

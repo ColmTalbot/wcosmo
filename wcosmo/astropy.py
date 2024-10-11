@@ -376,7 +376,7 @@ def __getattr__(name):
 class _Available:
 
     def keys(self):
-        return ("FlatLambdaCDM", "FlatwCDM") + _acosmo.available
+        return ("FlatLambdaCDM", "FlatwCDM", "Planck15_LAL") + _acosmo.available
 
     def __getitem__(self, key):
         return getattr(sys.modules[__name__], key)

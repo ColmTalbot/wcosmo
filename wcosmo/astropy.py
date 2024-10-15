@@ -10,13 +10,12 @@ By changing the backend and disabling units, these classes can then be used with
 """
 
 import sys
-from dataclasses import dataclass, field
 
 import astropy.cosmology as _acosmo
 import numpy as xp
 from astropy import units
 
-from .utils import autodoc, method_autodoc, strip_units
+from .utils import autodoc, convert_quantity_if_necessary, method_autodoc, strip_units
 from .wcosmo import *
 
 USE_UNITS = True
@@ -59,6 +58,14 @@ class WCosmoMixin:
     - :code:`source_to_detector_frame` - convert masses and redshift from the source
       frame to the detector frame, see :func:`source_to_detector_frame`
     """
+
+    @property
+    def H0(self):
+        return self._H0
+
+    @H0.setter
+    def H0(self, value):
+        self._H0 = convert_quantity_if_necessary(value, unit="km s^-1 Mpc^-1")
 
     @property
     def _kwargs(self):
@@ -364,11 +371,20 @@ class FlatLambdaCDM(WCosmoMixin):
         self.meta = meta
 
 
+_known_cosmologies = dict()
+
+
 def __getattr__(name):
-    if name not in __all__:
+    if f"{name}_{xp.__name__}" in _known_cosmologies:
+        return _known_cosmologies[f"{name}_{xp.__name__}"]
+    elif name not in __all__:
         alt = _acosmo.__getattr__(name)
-        cosmo = FlatLambdaCDM(**alt.parameters)
-        setattr(sys.modules[__name__], name, cosmo)
+        params = {
+            key: convert_quantity_if_necessary(arg)
+            for key, arg in alt.parameters.items()
+        }
+        cosmo = FlatLambdaCDM(**params)
+        _known_cosmologies[f"{name}_{xp.__name__}"] = cosmo
         return cosmo
 
 

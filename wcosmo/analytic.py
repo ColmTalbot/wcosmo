@@ -61,9 +61,10 @@ def indefinite_integral(z, Om0, w0=-1, zpower=0):
     This has been discussed in :code:`cupy` and may be implemented in the
     future (https://github.com/cupy/cupy/issues/8274).
     """
-    value = (1 + z) ** (zpower - 1 / 2)
     try:
-        x = ((Om0 - 1) / Om0) * (1 + z) ** (3 * w0)
+        value = (1 + z) ** (zpower - 1 / 2)
+        x = (Om0 - 1) / Om0 * (1 + z) ** (3 * w0)
+        1 / (1 - Om0)
         aa = 1 / 2
         bb = (zpower - 1 / 2) / (3 * w0)
         cc = bb + 1
@@ -74,8 +75,15 @@ def indefinite_integral(z, Om0, w0=-1, zpower=0):
         values = hyp2f1(aa, bb, cc, x)
         normalization = beta(bb, cc - bb) * values / (3 * w0 * Om0**0.5)
     except ZeroDivisionError:
-        normalization = 1 / (zpower - 1 / 2)
+        power = zpower - 1 / 2 - 3 * w0 / 2 * (Om0 == 0)
+        try:
+            value = (1 + z) ** power
+            normalization = 1 / power
+        except ZeroDivisionError:
+            value = xp.log(1 + z)
+            normalization = 1
+            print(value, normalization)
     result = value * normalization
-    if isinstance(x, float) and not isinstance(result, float):
-        result = result.item()
+    # if isinstance(value, float) and not isinstance(result, float):
+    #     result = result.item()
     return result

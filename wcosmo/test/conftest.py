@@ -1,8 +1,27 @@
 import gwpopulation
 import pytest
+from astropy import units as u
 
 from ..astropy import FlatLambdaCDM, available
 from ..utils import disable_units, enable_units
+
+h_unit = u.km / u.s / u.Mpc
+
+# FIXME: make the commented test cases work
+test_points = [
+    # dict(H0=70 * h_unit, Om0=0.0, w0=-1),
+    # dict(H0=70 * h_unit, Om0=0.1, w0=-1),
+    # dict(H0=70 * h_unit, Om0=0.9, w0=-1),
+    # dict(H0=70 * h_unit, Om0=1.0, w0=-1),
+    # dict(H0=70 * h_unit, Om0=0.0, w0=-1.1),
+    # dict(H0=70 * h_unit, Om0=0.1, w0=-1.1),
+    # dict(H0=70 * h_unit, Om0=0.9, w0=-1.1),
+    # dict(H0=70 * h_unit, Om0=1.0, w0=-1.1),
+    # dict(H0=70 * h_unit, Om0=0.0, w0=0.0),
+    # dict(H0=70 * h_unit, Om0=0.1, w0=0.0),
+    # dict(H0=70 * h_unit, Om0=0.9, w0=0.0),
+    # dict(H0=70 * h_unit, Om0=1.0, w0=0.0),
+]
 
 
 @pytest.fixture(params=["numpy", "jax", "cupy"])
@@ -17,11 +36,12 @@ def npy():
     return gwpopulation.set_backend("numpy")
 
 
-@pytest.fixture(params=available.keys())
+@pytest.fixture(params=list(available.keys()) + test_points)
 def cosmo(request):
-    ours = available[request.param]
-    if not isinstance(ours, FlatLambdaCDM):
-        pytest.skip()
+    if isinstance(request.param, str):
+        ours = available[request.param]
+        if not isinstance(ours, FlatLambdaCDM):
+            pytest.skip()
     return request.param
 
 

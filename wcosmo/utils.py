@@ -143,3 +143,48 @@ def strip_units(value):
     if isinstance(value, np.float64):
         value = value.item()
     return value
+
+
+def convert_quantity_if_necessary(arg, unit=None):
+    """
+    Helper function to convert between :code:`astropy` and :code:`unxt`
+    quantities and non-unitful values.
+
+    The order of precedence is as follows:
+
+    - If using :code:`jax.numpy` as the backend, the input is an
+      :code:`astropy` or :code:`unxt` quantity or :code:`unit` is specified,
+      convert to a :code:`unxt` quantity with the provided unit.
+    - If using :code:`jax.numpy` as the backend, the input is not a quantiy
+      and no unit is provided, return the input.
+    - If a unit and an :code:`astropy` quantity are provided, convert the
+      input to an :code:`astropy` quantity with the provided unit
+    - If a unit is provided, convert the input to an :code:`astropy`
+      quantity with the provided unit.
+    - Else return the input as is.
+
+    Parameters
+    ==========
+    arg: Union[astropy.units.Quantity, unxt.Quantity, array_like]
+        The array to convert
+    unit: Optional[astropy.units.Unit, str]
+        The unit to convert to
+
+    Returns
+    =======
+    Union[astropy.units.Quantity, unxt.Quantity, array_like]
+        The converted array
+    """
+    from astropy.units import Quantity as _Quantity
+
+    if xp.__name__ == "jax.numpy" and (isinstance(arg, _Quantity) or unit is not None):
+        from unxt import Quantity
+
+        if unit is None:
+            return Quantity.from_(arg)
+        return Quantity.from_(arg, unit)
+    elif unit is not None and isinstance(arg, _Quantity):
+        return arg.to(unit)
+    elif unit is not None:
+        return _Quantity(arg, unit)
+    return arg

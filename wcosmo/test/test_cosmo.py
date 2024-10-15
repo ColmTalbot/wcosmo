@@ -25,13 +25,22 @@ funcs = [
 EPS = 1e-2
 
 
+def get_equivalent_cosmologies(cosmo):
+    if isinstance(cosmo, str):
+        ours = astropy.available[cosmo]
+        theirs = getattr(cosmology, cosmo)
+    else:
+        ours = astropy.FlatwCDM(**cosmo)
+        theirs = cosmology.FlatwCDM(**cosmo)
+    return ours, theirs
+
+
 @pytest.mark.parametrize("func", funcs)
 def test_redshift_function(cosmo, func, backend, units, method):
     if units and (backend != "numpy"):
         pytest.skip()
 
-    instance = astropy.available[cosmo]
-    alt = getattr(cosmology, cosmo)
+    instance, alt = get_equivalent_cosmologies(cosmo)
 
     redshifts = np.linspace(1e-3, 10, 1000)
 
@@ -55,11 +64,12 @@ def test_z_at_value(cosmo, func, backend, method):
     disable_units()
     from gwpopulation.utils import xp
 
-    instance = astropy.available[cosmo]
+    instance, alt = get_equivalent_cosmologies(cosmo)
+
     object.__setattr__(instance, "method", method)
 
     ours = getattr(instance, func)
-    theirs = getattr(getattr(cosmology, cosmo), func)
+    theirs = getattr(alt, func)
 
     redshifts = np.linspace(1e-3, 10, 10)
     vals = theirs(redshifts)
@@ -79,8 +89,9 @@ def test_z_at_value(cosmo, func, backend, method):
 
 @pytest.mark.parametrize("func", ["hubble_time", "hubble_distance"])
 def test_properties(cosmo, func):
-    ours = getattr(astropy.available[cosmo], func)
-    theirs = getattr(getattr(cosmology, cosmo), func)
+    instance, alt = get_equivalent_cosmologies(cosmo)
+    ours = getattr(instance, func)
+    theirs = getattr(alt, func)
 
     ours = ours
     theirs = theirs
@@ -93,7 +104,7 @@ def test_properties(cosmo, func):
 def test_detector_to_source_and_source_to_detector_are_inverse(cosmo, backend):
     from gwpopulation.utils import xp
 
-    ours = astropy.available[cosmo]
+    ours, _ = get_equivalent_cosmologies(cosmo)
 
     source_mass_1, source_mass_2 = xp.asarray(np.random.uniform(20, 30, (2, 1000)))
     redshifts = xp.asarray(np.random.uniform(1e-4, 1, 1000))
@@ -118,7 +129,7 @@ def test_dDLdz_is_the_gradient(cosmo):
     jax = pytest.importorskip("jax")
     set_backend("jax")
 
-    ours = astropy.available[cosmo]
+    ours, _ = get_equivalent_cosmologies(cosmo)
 
     auto_gradient = jax.grad(ours.luminosity_distance)
 

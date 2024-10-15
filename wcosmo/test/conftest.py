@@ -11,16 +11,16 @@ h_unit = u.km / u.s / u.Mpc
 test_points = [
     # dict(H0=70 * h_unit, Om0=0.0, w0=-1),
     # dict(H0=70 * h_unit, Om0=0.1, w0=-1),
-    # dict(H0=70 * h_unit, Om0=0.9, w0=-1),
-    # dict(H0=70 * h_unit, Om0=1.0, w0=-1),
-    # dict(H0=70 * h_unit, Om0=0.0, w0=-1.1),
+    dict(H0=70 * h_unit, Om0=0.9, w0=-1),
+    dict(H0=70 * h_unit, Om0=1.0, w0=-1),
+    dict(H0=70 * h_unit, Om0=0.0, w0=-1.1),
     # dict(H0=70 * h_unit, Om0=0.1, w0=-1.1),
-    # dict(H0=70 * h_unit, Om0=0.9, w0=-1.1),
-    # dict(H0=70 * h_unit, Om0=1.0, w0=-1.1),
-    # dict(H0=70 * h_unit, Om0=0.0, w0=0.0),
+    dict(H0=70 * h_unit, Om0=0.9, w0=-1.1),
+    dict(H0=70 * h_unit, Om0=1.0, w0=-1.1),
+    dict(H0=70 * h_unit, Om0=0.0, w0=0.0),
     # dict(H0=70 * h_unit, Om0=0.1, w0=0.0),
     # dict(H0=70 * h_unit, Om0=0.9, w0=0.0),
-    # dict(H0=70 * h_unit, Om0=1.0, w0=0.0),
+    dict(H0=70 * h_unit, Om0=1.0, w0=0.0),
 ]
 
 

@@ -8,7 +8,6 @@ We include two additional constants that are useful for out default units:
 - :code:`gyr_km_per_s_mpc` - the conversion factor from Gyr to km/s/Mpc
 """
 
-import numpy as xp
 from astropy import units
 
 from .utils import convert_quantity_if_necessary

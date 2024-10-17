@@ -5,11 +5,11 @@ from .utils import autodoc
 
 xp = np
 
-__all__ = ["indefinite_integral"]
+__all__ = ["indefinite_integral_hypergeometric"]
 
 
 @autodoc
-def indefinite_integral(z, Om0, w0=-1, zpower=0):
+def indefinite_integral_hypergeometric(z, Om0, w0=-1, zpower=0):
     r"""
     Compute the integral of :math:`(1+z)^k / E(z)` as described in
     https://doi.org/10.4236/jhepgc.2021.73057.
@@ -61,29 +61,15 @@ def indefinite_integral(z, Om0, w0=-1, zpower=0):
     This has been discussed in :code:`cupy` and may be implemented in the
     future (https://github.com/cupy/cupy/issues/8274).
     """
-    try:
-        value = (1 + z) ** (zpower - 1 / 2)
-        x = (Om0 - 1) / Om0 * (1 + z) ** (3 * w0)
-        1 / (1 - Om0)
-        aa = 1 / 2
-        bb = (zpower - 1 / 2) / (3 * w0)
-        cc = bb + 1
-        if "jax" in xp.__name__:
-            from ._hyp2f1_jax import hyp2f1
-        else:
-            from scipy.special import hyp2f1
-        values = hyp2f1(aa, bb, cc, x)
-        normalization = beta(bb, cc - bb) * values / (3 * w0 * Om0**0.5)
-    except ZeroDivisionError:
-        power = zpower - 1 / 2 - 3 * w0 / 2 * (Om0 == 0)
-        try:
-            value = (1 + z) ** power
-            normalization = 1 / power
-        except ZeroDivisionError:
-            value = xp.log(1 + z)
-            normalization = 1
-            print(value, normalization)
-    result = value * normalization
-    # if isinstance(value, float) and not isinstance(result, float):
-    #     result = result.item()
-    return result
+    if xp.__name__ == "jax":
+        from ._hyp2f1_jax import hyp2f1
+    else:
+        from scipy.special import hyp2f1
+    value = (1 + z) ** (zpower - 1 / 2)
+    x = (Om0 - 1) / Om0 * (1 + z) ** (3 * w0)
+    aa = 1 / 2
+    bb = (zpower - 1 / 2) / (3 * w0)
+    cc = bb + 1
+    values = hyp2f1(aa, bb, cc, x)
+    normalization = beta(bb, cc - bb) * values / (3 * w0 * Om0**0.5)
+    return value * normalization

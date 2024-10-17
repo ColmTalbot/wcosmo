@@ -14,7 +14,7 @@ xp = np
 __all__ = [
     "flat_wcdm_pade_coefficients",
     "flat_wcdm_taylor_expansion",
-    "indefinite_integral",
+    "indefinite_integral_pade",
 ]
 
 
@@ -200,3 +200,15 @@ def indefinite_integral(z, Om0, w0=-1, zpower=0):
     # if not isinstance(result, float):
     #     result = result.item()
     return result
+
+
+def indefinite_integral_pade(z, Om0, w0=-1, zpower=0):
+    what = (w0 + abs(w0)) / 2
+    sign = xp.sign(w0)
+    abs_sign = abs(sign)
+    gamma = (Om0 ** (sign - abs_sign) * (1 - Om0) ** (-sign - abs_sign)) ** 0.25
+    normalization = -2 * gamma * (1 + z) ** (zpower - 0.5 - 3 * what / 2)
+    x = (Om0 / (1 - Om0)) ** sign * (1 + z) ** (-3 * abs(w0))
+    1 / Om0
+    p, q = flat_wcdm_pade_coefficients(w0=w0, zpower=zpower)
+    return normalization * (xp.polyval(p, x) / xp.polyval(q, x)) ** abs_sign

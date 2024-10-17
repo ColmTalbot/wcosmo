@@ -37,25 +37,33 @@ def get_equivalent_cosmologies(cosmo):
 
 @pytest.mark.parametrize("func", funcs)
 def test_redshift_function(cosmo, func, backend, units, method):
-    if units and (backend != "numpy"):
+    if units and (backend not in ["numpy", "jax"]):
         pytest.skip()
+    from gwpopulation.utils import xp
 
     instance, alt = get_equivalent_cosmologies(cosmo)
 
+    if func == "age" and instance.Om0 == 0.0 and instance.w0 == -1:
+        pytest.skip("Age is infinite for de Sitter cosmologies")
+
     redshifts = np.linspace(1e-3, 10, 1000)
+    xredshifts = xp.linspace(1e-3, 10, 1000)
 
     object.__setattr__(instance, "method", method)
 
-    ours = to_numpy(getattr(instance, func)(redshifts))
+    ours = getattr(instance, func)(xredshifts)
     theirs = getattr(alt, func)(redshifts)
 
     object.__setattr__(instance, "method", "pade")
 
     if not units:
         theirs = strip_units(theirs)
-    elif hasattr(theirs, "unit"):
-        print(theirs.unit)
+    elif hasattr(theirs, "unit") and hasattr(ours, "unit"):
         assert ours.unit == theirs.unit
+        ours = ours.value
+        theirs = theirs.value
+    elif hasattr(theirs, "unit"):
+        theirs = theirs.value
     if func == "absorption_distance":
         # The absorption distance calculation is not super
         # accurate, I think this is either an issue with

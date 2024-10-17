@@ -311,7 +311,11 @@ def z_at_value(func, fval, zmin=1e-4, zmax=100, **kwargs):
         The redshift at which the function equals the desired value
     """
     zs = xp.logspace(xp.log10(zmin), xp.log10(zmax), 1000)
-    return xp.interp(fval, func(zs, **kwargs), zs, left=zmin, right=zmax, period=None)
+    xs = func(zs, **kwargs)
+    values = xp.interp(fval, xs, zs, left=zmin, right=zmax, period=None)
+    from .utils import convert_quantity_if_necessary
+
+    return convert_quantity_if_necessary(values, None)
 
 
 @maybe_jit

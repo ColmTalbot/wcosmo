@@ -102,17 +102,17 @@ def analytic_integral(z, Om0, w0=-1, zpower=0, method="pade"):
     >>> wcosmo.absorption_distance(2,Om0=0.3)
     4.36995
     """
-    kwargs = dict(Om0=Om0, w0=w0, zpower=zpower)
+    kwargs = dict(Om0=Om0, w0=w0, zpower=zpower, method=method)
     return indefinite_integral(z, **kwargs) - indefinite_integral(0, **kwargs)
 
 
 # @autodoc
 @maybe_jit
-def indefinite_integral(z, Om0, w0=-1, zpower=0):
+def indefinite_integral(z, Om0, w0=-1, zpower=0, method="pade"):
     if xp.__name__ == "jax.numpy":
-        return _indefinite_integral_jax(z, Om0, w0, zpower)
+        return _indefinite_integral_jax(z, Om0, w0, zpower, method=method)
     else:
-        return _indefinite_integral_generic(z, Om0, w0, zpower)
+        return _indefinite_integral_generic(z, Om0, w0, zpower, method=method)
 
 
 @maybe_jit

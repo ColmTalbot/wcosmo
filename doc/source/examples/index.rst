@@ -7,3 +7,4 @@ Examples
    gwtc3
    timing
    astropy_comparisons
+   integral_comparisons

@@ -12,10 +12,9 @@ Functional implementation of cosmological parameters.
 """
 
 import numpy as xp
-from astropy import units
 
 from . import constants
-from .taylor import analytic_integral
+from .integrate import analytic_integral
 from .utils import autodoc, maybe_jit
 
 __all__ = [
@@ -144,7 +143,7 @@ def hubble_parameter(z, H0, Om0, w0=-1):
 
 @maybe_jit
 @autodoc
-def comoving_distance(z, H0, Om0, w0=-1):
+def comoving_distance(z, H0, Om0, w0=-1, method="pade"):
     r"""
     Compute the comoving distance using an analytic integral of the
     Pade approximation.
@@ -166,12 +165,12 @@ def comoving_distance(z, H0, Om0, w0=-1):
     comoving_distance: array_like
         The comoving distance in Mpc
     """
-    return analytic_integral(z, Om0, w0) * hubble_distance(H0)
+    return analytic_integral(z, Om0, w0, method=method) * hubble_distance(H0)
 
 
 @maybe_jit
 @autodoc
-def lookback_time(z, H0, Om0, w0=-1):
+def lookback_time(z, H0, Om0, w0=-1, method="pade"):
     r"""
     Compute the lookback time using an analytic integral of the
     Pade approximation.
@@ -193,12 +192,12 @@ def lookback_time(z, H0, Om0, w0=-1):
     lookback_time: array_like
         The lookback time in km / s / Mpc
     """
-    return analytic_integral(z, Om0, w0, zpower=-1) * hubble_time(H0)
+    return analytic_integral(z, Om0, w0, zpower=-1, method=method) * hubble_time(H0)
 
 
 @maybe_jit
 @autodoc
-def absorption_distance(z, Om0, w0=-1):
+def absorption_distance(z, Om0, w0=-1, method="pade"):
     r"""
     Compute the absorption distance using an analytic integral of the
     Pade approximation.
@@ -219,12 +218,12 @@ def absorption_distance(z, Om0, w0=-1):
     absorption_distance: array_like
         The absorption distance in Mpc
     """
-    return analytic_integral(z, Om0, w0, zpower=2)
+    return analytic_integral(z, Om0, w0, zpower=2, method=method)
 
 
 @maybe_jit
 @autodoc
-def luminosity_distance(z, H0, Om0, w0=-1):
+def luminosity_distance(z, H0, Om0, w0=-1, method="pade"):
     r"""
     Compute the luminosity distance using an analytic integral of the
     Pade approximation.
@@ -246,12 +245,12 @@ def luminosity_distance(z, H0, Om0, w0=-1):
     luminosity_distance: array_like
         The luminosity distance in Mpc
     """
-    return (1 + z) * comoving_distance(z, H0, Om0, w0)
+    return (1 + z) * comoving_distance(z, H0, Om0, w0, method=method)
 
 
 @maybe_jit
 @autodoc
-def dDLdz(z, H0, Om0, w0=-1):
+def dDLdz(z, H0, Om0, w0=-1, method="pade"):
     r"""
     The Jacobian for the conversion of redshift to luminosity distance.
 
@@ -282,7 +281,7 @@ def dDLdz(z, H0, Om0, w0=-1):
     cosmology objects, but is needed for accounting for expressing
     distributions of redshift as distributions over luminosity distance.
     """
-    dC = comoving_distance(z, H0=H0, Om0=Om0, w0=w0)
+    dC = comoving_distance(z, H0=H0, Om0=Om0, w0=w0, method=method)
     Ez_i = inv_efunc(z, Om0=Om0, w0=w0)
     D_H = hubble_distance(H0)
     return dC + (1 + z) * D_H * Ez_i
@@ -312,12 +311,16 @@ def z_at_value(func, fval, zmin=1e-4, zmax=100, **kwargs):
         The redshift at which the function equals the desired value
     """
     zs = xp.logspace(xp.log10(zmin), xp.log10(zmax), 1000)
-    return xp.interp(fval, func(zs, **kwargs), zs, left=zmin, right=zmax, period=None)
+    xs = func(zs, **kwargs)
+    values = xp.interp(fval, xs, zs, left=zmin, right=zmax, period=None)
+    from .utils import convert_quantity_if_necessary
+
+    return convert_quantity_if_necessary(values, None)
 
 
 @maybe_jit
 @autodoc
-def differential_comoving_volume(z, H0, Om0, w0=-1):
+def differential_comoving_volume(z, H0, Om0, w0=-1, method="pade"):
     r"""
     Compute the differential comoving volume element.
 
@@ -338,7 +341,7 @@ def differential_comoving_volume(z, H0, Om0, w0=-1):
     dVc: array_like
         The differential comoving volume element in :math:`\rm{{Gpc}}^3`
     """
-    dC = comoving_distance(z, H0, Om0, w0=w0)
+    dC = comoving_distance(z, H0, Om0, w0=w0, method=method)
     Ez_i = inv_efunc(z, Om0, w0=w0)
     D_H = hubble_distance(H0)
     return dC**2 * D_H * Ez_i / constants.steradian
@@ -346,7 +349,9 @@ def differential_comoving_volume(z, H0, Om0, w0=-1):
 
 @maybe_jit
 @autodoc
-def detector_to_source_frame(m1z, m2z, dL, H0, Om0, w0=-1, zmin=1e-4, zmax=100):
+def detector_to_source_frame(
+    m1z, m2z, dL, H0, Om0, w0=-1, method="pade", zmin=1e-4, zmax=100
+):
     """
     Convert masses and luminosity distance from the detector frame to
     source frame masses and redshift.
@@ -370,13 +375,22 @@ def detector_to_source_frame(m1z, m2z, dL, H0, Om0, w0=-1, zmin=1e-4, zmax=100):
     m1, m2, z: array_like
         The primary and secondary masses in the source frame and the redshift
     """
-    z = z_at_value(luminosity_distance, dL, zmin=zmin, zmax=zmax, H0=H0, Om0=Om0, w0=w0)
+    z = z_at_value(
+        luminosity_distance,
+        dL,
+        zmin=zmin,
+        zmax=zmax,
+        H0=H0,
+        Om0=Om0,
+        w0=w0,
+        method=method,
+    )
     return m1z / (1 + z), m2z / (1 + z), z
 
 
 @maybe_jit
 @autodoc
-def source_to_detector_frame(m1, m2, z, H0, Om0, w0=-1):
+def source_to_detector_frame(m1, m2, z, H0, Om0, w0=-1, method="pade"):
     """
     Convert masses and redshift from the source frame to the detector frame.
 
@@ -395,13 +409,13 @@ def source_to_detector_frame(m1, m2, z, H0, Om0, w0=-1):
         The primary and secondary masses in the detector frame and the
         luminosity distance
     """
-    dL = luminosity_distance(z, H0, Om0, w0=w0)
+    dL = luminosity_distance(z, H0, Om0, w0=w0, method=method)
     return m1 * (1 + z), m2 * (1 + z), dL
 
 
 @maybe_jit
 @autodoc
-def comoving_volume(z, H0, Om0, w0=-1):
+def comoving_volume(z, H0, Om0, w0=-1, method="pade"):
     r"""
     Compute the comoving volume out to redshift z.
 
@@ -421,4 +435,4 @@ def comoving_volume(z, H0, Om0, w0=-1):
     Vc: array_like
         The comoving volume in :math:`\rm{{Gpc}}^3`
     """
-    return 4 / 3 * xp.pi * comoving_distance(z, H0, Om0, w0=w0) ** 3
+    return 4 / 3 * xp.pi * comoving_distance(z, H0, Om0, w0=w0, method=method) ** 3

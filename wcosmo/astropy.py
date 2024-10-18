@@ -69,7 +69,7 @@ class WCosmoMixin:
 
     @property
     def _kwargs(self):
-        kwargs = {"H0": self.H0, "Om0": self.Om0, "w0": self.w0}
+        kwargs = {"H0": self.H0, "Om0": self.Om0, "w0": self.w0, "method": self.method}
         if not USE_UNITS:
             kwargs = {key: strip_units(value) for key, value in kwargs.items()}
         return kwargs
@@ -136,7 +136,9 @@ class WCosmoMixin:
 
     @method_autodoc(alt=hubble_parameter)
     def H(self, z):
-        return hubble_parameter(z, **self._kwargs)
+        kwargs = self._kwargs
+        kwargs.pop("method")
+        return hubble_parameter(z, **kwargs)
 
     @method_autodoc(alt=comoving_distance)
     def comoving_distance(self, z):
@@ -224,6 +226,7 @@ class FlatwCDM(WCosmoMixin):
         *,
         zmin=1e-4,
         zmax=100,
+        method="pade",
         name=None,
         meta=None,
     ):
@@ -269,6 +272,11 @@ class FlatwCDM(WCosmoMixin):
             density at z=0.  If this is set to None (the default), any computation
             that requires its value will raise an exception.
 
+        method: str (optional, keyword-only)
+            The integration method, should be one of :code:`pade` or :code:`analytic`
+            for the pade approximation or analytic hypergeometric methods
+            respectively.
+
         name : str or None (optional, keyword-only)
             Name for this cosmological object.
 
@@ -290,6 +298,7 @@ class FlatwCDM(WCosmoMixin):
         self.w0 = w0
         self.zmin = zmin
         self.zmax = zmax
+        self.method = method
         self.name = name
         self.meta = meta
 
@@ -306,6 +315,7 @@ class FlatLambdaCDM(WCosmoMixin):
         *,
         zmin=1e-4,
         zmax=100,
+        method="pade",
         name=None,
         meta=None,
     ):
@@ -346,6 +356,11 @@ class FlatLambdaCDM(WCosmoMixin):
             density at z=0.  If this is set to None (the default), any computation
             that requires its value will raise an exception.
 
+        method: str (optional, keyword-only)
+            The integration method, should be one of :code:`pade` or :code:`analytic`
+            for the pade approximation or analytic hypergeometric methods
+            respectively.
+
         name : str or None (optional, keyword-only)
             Name for this cosmological object.
 
@@ -367,6 +382,7 @@ class FlatLambdaCDM(WCosmoMixin):
         self.w0 = -1
         self.zmin = zmin
         self.zmax = zmax
+        self.method = method
         self.name = name
         self.meta = meta
 

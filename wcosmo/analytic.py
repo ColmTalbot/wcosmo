@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.special import beta
+import scipy.special as scs
 
 from .utils import autodoc
 
@@ -61,15 +61,20 @@ def indefinite_integral_hypergeometric(z, Om0, w0=-1, zpower=0):
     This has been discussed in :code:`cupy` and may be implemented in the
     future (https://github.com/cupy/cupy/issues/8274).
     """
-    if xp.__name__ == "jax":
+    if xp.__name__ == "jax.numpy":
         from ._hyp2f1_jax import hyp2f1
     else:
         from scipy.special import hyp2f1
     value = (1 + z) ** (zpower - 1 / 2)
-    x = (Om0 - 1) / Om0 * (1 + z) ** (3 * w0)
     aa = 1 / 2
-    bb = (zpower - 1 / 2) / (3 * w0)
+    # jax will evaluate all the branches of the analytic integral and so we
+    # need to manually catch zero division errors.
+    try:
+        x = (Om0 - 1) / Om0 * (1 + z) ** (3 * w0)
+        bb = (zpower - 1 / 2) / (3 * w0)
+    except ZeroDivisionError:
+        return z * 0.0
     cc = bb + 1
     values = hyp2f1(aa, bb, cc, x)
-    normalization = beta(bb, cc - bb) * values / (3 * w0 * Om0**0.5)
+    normalization = scs.beta(bb, cc - bb) * values / (3 * w0 * Om0**0.5)
     return value * normalization

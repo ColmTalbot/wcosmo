@@ -143,7 +143,7 @@ def flat_wcdm_pade_coefficients(w0=-1, zpower=0):
 
 
 @autodoc
-def indefinite_integral(z, Om0, w0=-1, zpower=0):
+def indefinite_integral_pade(z, Om0, w0=-1, zpower=0):
     r"""
     Compute the Pade approximation to :math:`(1+z)^k / E(z)` as described in
     arXiv:1111.6396. We extend it to include a variable dark energy
@@ -180,35 +180,16 @@ def indefinite_integral(z, Om0, w0=-1, zpower=0):
     I: array_like
         The indefinite integral of :math:`(1+z)^k / E(z)`
     """
-    try:
-        what = (w0 + abs(w0)) / 2
-        sign = xp.sign(w0)
-        abs_sign = abs(sign)
-        gamma = (Om0 ** (sign - abs_sign) * (1 - Om0) ** (-sign - abs_sign)) ** 0.25
-        normalization = -2 * gamma * (1 + z) ** (zpower - 0.5 - 3 * what / 2)
-        x = (Om0 / (1 - Om0)) ** sign * (1 + z) ** (-3 * abs(w0))
-        1 / Om0
-        p, q = flat_wcdm_pade_coefficients(w0=w0, zpower=zpower)
-        result = normalization * (xp.polyval(p, x) / xp.polyval(q, x)) ** abs_sign
-    except ZeroDivisionError:
-        power = zpower - 1 / 2 - 3 * w0 / 2 * (Om0 == 0)
-        try:
-            result = (1 + z) ** power / power
-        except ZeroDivisionError:
-            result = xp.log(1 + z)
-            print(result)
-    # if not isinstance(result, float):
-    #     result = result.item()
-    return result
-
-
-def indefinite_integral_pade(z, Om0, w0=-1, zpower=0):
     what = (w0 + abs(w0)) / 2
     sign = xp.sign(w0)
     abs_sign = abs(sign)
     gamma = (Om0 ** (sign - abs_sign) * (1 - Om0) ** (-sign - abs_sign)) ** 0.25
     normalization = -2 * gamma * (1 + z) ** (zpower - 0.5 - 3 * what / 2)
-    x = (Om0 / (1 - Om0)) ** sign * (1 + z) ** (-3 * abs(w0))
-    1 / Om0
+    # jax will evaluate all the branches of the pade integral and so we
+    # need to manually catch zero division errors.
+    try:
+        x = (Om0 / (1 - Om0)) ** sign * (1 + z) ** (-3 * abs(w0))
+    except ZeroDivisionError:
+        return z * 0.0
     p, q = flat_wcdm_pade_coefficients(w0=w0, zpower=zpower)
     return normalization * (xp.polyval(p, x) / xp.polyval(q, x)) ** abs_sign

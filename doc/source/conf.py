@@ -65,6 +65,8 @@ if not version_match or version_match.isdigit() or version_match == "latest":
         version_match = f"v{release}"
 elif version_match == "stable":
     version_match = f"v{release}"
+elif version_match == "0.2.2":
+    version_match = f"v{release}"
 
 
 html_theme_options = {

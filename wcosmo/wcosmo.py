@@ -11,11 +11,13 @@ Functional implementation of cosmological parameters.
     unless :func:`wcosmo.utils.disable_units` has been called.
 """
 
-import numpy as xp
+from functools import partial
+
+import numpy as np
 
 from . import constants
 from .integrate import analytic_integral
-from .utils import autodoc, maybe_jit
+from .utils import array_namespace, autodoc, convert_quantity_if_necessary, maybe_jit
 
 __all__ = [
     "absorption_distance",
@@ -30,7 +32,6 @@ __all__ = [
     "hubble_time",
     "inv_efunc",
     "lookback_time",
-    "absorption_distance",
     "luminosity_distance",
     "source_to_detector_frame",
     "z_at_value",
@@ -84,7 +85,7 @@ def inv_efunc(z, Om0, w0=-1):
 
 
 @autodoc
-def hubble_distance(H0):
+def hubble_distance(H0, *, xp=np):
     r"""
     Compute the Hubble distance :math:`D_H = c H_0^{{-1}}` in Mpc.
 
@@ -141,7 +142,7 @@ def hubble_parameter(z, H0, Om0, w0=-1):
     return H0 * efunc(z=z, Om0=Om0, w0=w0)
 
 
-@maybe_jit
+@partial(maybe_jit, static_argnames=("method",))
 @autodoc
 def comoving_distance(z, H0, Om0, w0=-1, method="pade"):
     r"""
@@ -165,10 +166,11 @@ def comoving_distance(z, H0, Om0, w0=-1, method="pade"):
     comoving_distance: array_like
         The comoving distance in Mpc
     """
-    return analytic_integral(z, Om0, w0, method=method) * hubble_distance(H0)
+    xp = array_namespace(z)
+    return analytic_integral(z, Om0, w0, method=method) * hubble_distance(H0, xp=xp)
 
 
-@maybe_jit
+@partial(maybe_jit, static_argnames=("method",))
 @autodoc
 def lookback_time(z, H0, Om0, w0=-1, method="pade"):
     r"""
@@ -192,10 +194,13 @@ def lookback_time(z, H0, Om0, w0=-1, method="pade"):
     lookback_time: array_like
         The lookback time in km / s / Mpc
     """
-    return analytic_integral(z, Om0, w0, zpower=-1, method=method) * hubble_time(H0)
+    xp = array_namespace(z)
+    return analytic_integral(
+        z, Om0, w0, zpower=xp.array(-1), method=method
+    ) * hubble_time(H0)
 
 
-@maybe_jit
+@partial(maybe_jit, static_argnames=("method",))
 @autodoc
 def absorption_distance(z, Om0, w0=-1, method="pade"):
     r"""
@@ -221,7 +226,7 @@ def absorption_distance(z, Om0, w0=-1, method="pade"):
     return analytic_integral(z, Om0, w0, zpower=2, method=method)
 
 
-@maybe_jit
+@partial(maybe_jit, static_argnames=("method",))
 @autodoc
 def luminosity_distance(z, H0, Om0, w0=-1, method="pade"):
     r"""
@@ -248,7 +253,7 @@ def luminosity_distance(z, H0, Om0, w0=-1, method="pade"):
     return (1 + z) * comoving_distance(z, H0, Om0, w0, method=method)
 
 
-@maybe_jit
+@partial(maybe_jit, static_argnames=("method",))
 @autodoc
 def dDLdz(z, H0, Om0, w0=-1, method="pade"):
     r"""
@@ -281,12 +286,14 @@ def dDLdz(z, H0, Om0, w0=-1, method="pade"):
     cosmology objects, but is needed for accounting for expressing
     distributions of redshift as distributions over luminosity distance.
     """
+    xp = array_namespace(z)
     dC = comoving_distance(z, H0=H0, Om0=Om0, w0=w0, method=method)
     Ez_i = inv_efunc(z, Om0=Om0, w0=w0)
-    D_H = hubble_distance(H0)
+    D_H = hubble_distance(H0, xp=xp)
     return dC + (1 + z) * D_H * Ez_i
 
 
+@partial(maybe_jit, static_argnames=("func",))
 @autodoc
 def z_at_value(func, fval, zmin=1e-4, zmax=100, **kwargs):
     """
@@ -310,15 +317,14 @@ def z_at_value(func, fval, zmin=1e-4, zmax=100, **kwargs):
     z: float
         The redshift at which the function equals the desired value
     """
+    xp = array_namespace(fval)
     zs = xp.logspace(xp.log10(zmin), xp.log10(zmax), 1000)
     xs = func(zs, **kwargs)
     values = xp.interp(fval, xs, zs, left=zmin, right=zmax, period=None)
-    from .utils import convert_quantity_if_necessary
-
-    return convert_quantity_if_necessary(values, None)
+    return convert_quantity_if_necessary(values, None, xp=xp)
 
 
-@maybe_jit
+@partial(maybe_jit, static_argnames=("method",))
 @autodoc
 def differential_comoving_volume(z, H0, Om0, w0=-1, method="pade"):
     r"""
@@ -341,13 +347,15 @@ def differential_comoving_volume(z, H0, Om0, w0=-1, method="pade"):
     dVc: array_like
         The differential comoving volume element in :math:`\rm{{Gpc}}^3`
     """
+    xp = array_namespace(z)
     dC = comoving_distance(z, H0, Om0, w0=w0, method=method)
     Ez_i = inv_efunc(z, Om0, w0=w0)
-    D_H = hubble_distance(H0)
-    return dC**2 * D_H * Ez_i / constants.steradian
+    D_H = hubble_distance(H0, xp=xp)
+    sr = convert_quantity_if_necessary(constants.steradian, xp=xp)
+    return dC**2 * D_H * Ez_i / sr
 
 
-@maybe_jit
+@partial(maybe_jit, static_argnames=("method",))
 @autodoc
 def detector_to_source_frame(
     m1z, m2z, dL, H0, Om0, w0=-1, method="pade", zmin=1e-4, zmax=100
@@ -388,7 +396,7 @@ def detector_to_source_frame(
     return m1z / (1 + z), m2z / (1 + z), z
 
 
-@maybe_jit
+@partial(maybe_jit, static_argnames=("method",))
 @autodoc
 def source_to_detector_frame(m1, m2, z, H0, Om0, w0=-1, method="pade"):
     """
@@ -413,7 +421,7 @@ def source_to_detector_frame(m1, m2, z, H0, Om0, w0=-1, method="pade"):
     return m1 * (1 + z), m2 * (1 + z), dL
 
 
-@maybe_jit
+@partial(maybe_jit, static_argnames=("method",))
 @autodoc
 def comoving_volume(z, H0, Om0, w0=-1, method="pade"):
     r"""
@@ -435,4 +443,4 @@ def comoving_volume(z, H0, Om0, w0=-1, method="pade"):
     Vc: array_like
         The comoving volume in :math:`\rm{{Gpc}}^3`
     """
-    return 4 / 3 * xp.pi * comoving_distance(z, H0, Om0, w0=w0, method=method) ** 3
+    return 4 / 3 * np.pi * comoving_distance(z, H0, Om0, w0=w0, method=method) ** 3

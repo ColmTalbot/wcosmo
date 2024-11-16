@@ -10,9 +10,9 @@ We include two additional constants that are useful for out default units:
 
 from astropy import units
 
-from .utils import convert_quantity_if_necessary
+from .utils import convert_quantity_if_necessary, default_array_namespace
 
-__all__ = ["USE_UNITS", "c_km_per_s", "gyr_km_per_s_mpc"]
+__all__ = ["USE_UNITS", "c_km_per_s", "gyr_km_per_s_mpc"]  # noqa F822
 
 
 def __getattr__(name):
@@ -20,7 +20,8 @@ def __getattr__(name):
     if value is None:
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
     if USE_UNITS:
-        value = convert_quantity_if_necessary(value, _UNITS[name])
+        xp = default_array_namespace()
+        value = convert_quantity_if_necessary(value, _UNITS[name], xp=xp)
     return value
 
 

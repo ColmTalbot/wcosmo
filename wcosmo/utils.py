@@ -2,9 +2,12 @@
 Helper functions that are not directly relevant to cosmology.
 """
 
-import numpy as np
+import functools
+import os
 
-xp = np
+import numpy as np
+from array_api_compat import array_namespace as _array_namespace
+from array_api_compat import is_array_api_obj
 
 _cosmology_docstrings_ = dict(
     z="""z: array_like
@@ -115,7 +118,7 @@ def method_autodoc(alt=None):
     return new_wrapper
 
 
-def maybe_jit(func, *args, **kwargs):
+def maybe_jit(func, *jit_args, **jit_kwargs):
     """
     A decorator to jit the function if using jax.
 
@@ -125,11 +128,21 @@ def maybe_jit(func, *args, **kwargs):
     This function is pretty useful and so might make it into
     :code:`gwpopulation` regardless of cosmology.
     """
-    if "jax" in xp.__name__:
-        from jax import jit
 
-        return jit(func, *args, **kwargs)
-    return func
+    @functools.wraps(func)
+    def wrapped(*args, **kwargs):
+        xp = kwargs.pop("xp", np)
+        if len(args) > 0 and is_array_api_obj(args[0]):
+            xp = array_namespace(args[0])
+
+        if "jax" in xp.__name__:
+            from jax import jit
+
+            return jit(func, *jit_args, **jit_kwargs)(*args, **kwargs)
+        else:
+            return func(*args, **kwargs)
+
+    return wrapped
 
 
 def strip_units(value):
@@ -145,7 +158,7 @@ def strip_units(value):
     return value
 
 
-def convert_quantity_if_necessary(arg, unit=None):
+def convert_quantity_if_necessary(arg, unit=None, xp=np):
     """
     Helper function to convert between :code:`astropy` and :code:`unxt`
     quantities and non-unitful values.
@@ -188,3 +201,31 @@ def convert_quantity_if_necessary(arg, unit=None):
     elif unit is not None:
         return _Quantity(arg, unit)
     return arg
+
+
+def array_namespace(obj):
+    """
+    Get the array namespace from an array object
+    """
+    if is_array_api_obj(obj):
+        return _array_namespace(obj)
+    else:
+        return default_array_namespace()
+
+
+def default_array_namespace():
+    match os.environ.get("WCOSMO_ARRAY_API", "numpy"):
+        case "numpy":
+            import numpy as np
+        case "jax":
+            import jax.numpy as jnp
+
+            return jnp
+        case "cupy":
+            import cupy as cp
+
+            return cp
+        case _:
+            print(f"Unknown array API: {os.environ['WCOSMO_ARRAY_API']} for wcosmo")
+            return np
+    return np

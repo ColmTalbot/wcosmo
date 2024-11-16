@@ -1,7 +1,9 @@
+import warnings
+
 import numpy as np
 import pytest
 from astropy import cosmology
-from gwpopulation.backend import set_backend
+from scipy.integrate import IntegrationWarning
 
 from .. import astropy, wcosmo
 from ..utils import disable_units, enable_units, strip_units
@@ -36,9 +38,9 @@ def get_equivalent_cosmologies(cosmo):
 
 @pytest.mark.parametrize("func", funcs)
 def test_redshift_function(cosmo, func, backend, units, method):
-    if units and (backend not in ["numpy", "jax"]):
+    if units and ("cupy" in backend.__name__):
         pytest.skip()
-    from gwpopulation.utils import xp
+    xp = backend
 
     instance, alt = get_equivalent_cosmologies(cosmo)
 
@@ -51,7 +53,10 @@ def test_redshift_function(cosmo, func, backend, units, method):
     object.__setattr__(instance, "method", method)
 
     ours = getattr(instance, func)(xredshifts)
-    theirs = getattr(alt, func)(redshifts)
+    with warnings.catch_warnings():
+        # filter warnings from astropy about integration not converging for age
+        warnings.simplefilter("ignore", category=IntegrationWarning)
+        theirs = getattr(alt, func)(redshifts)
 
     object.__setattr__(instance, "method", "pade")
 
@@ -71,13 +76,14 @@ def test_redshift_function(cosmo, func, backend, units, method):
         eps = 1e-1
     else:
         eps = EPS
+    assert isinstance(ours, xp.ndarray)
     assert max(abs(ours - theirs) / theirs) < eps
 
 
 @pytest.mark.parametrize("func", funcs[:3])
 def test_z_at_value(cosmo, func, backend, method):
     disable_units()
-    from gwpopulation.utils import xp
+    xp = backend
 
     instance, alt = get_equivalent_cosmologies(cosmo)
 
@@ -99,6 +105,7 @@ def test_z_at_value(cosmo, func, backend, method):
 
     object.__setattr__(instance, "method", "pade")
 
+    assert isinstance(ours, xp.ndarray)
     assert max(abs(ours - theirs) / theirs) < EPS
 
 
@@ -111,13 +118,11 @@ def test_properties(cosmo, func):
     ours = ours
     theirs = theirs
 
-    if hasattr(ours, "unit"):
-        ours = ours.value
     assert abs(strip_units(ours) - strip_units(theirs)) < 1e-8
 
 
 def test_detector_to_source_and_source_to_detector_are_inverse(cosmo, backend):
-    from gwpopulation.utils import xp
+    xp = backend
 
     ours, _ = get_equivalent_cosmologies(cosmo)
 
@@ -134,6 +139,7 @@ def test_detector_to_source_and_source_to_detector_are_inverse(cosmo, backend):
     assert max(abs(final_mass_1 - source_mass_1)) < EPS
     assert max(abs(final_mass_2 - source_mass_2)) < EPS
     assert max(abs(final_redshifts - redshifts)) < EPS
+    assert isinstance(final_mass_1, xp.ndarray)
 
 
 def test_dDLdz_is_the_gradient(cosmo):
@@ -142,7 +148,6 @@ def test_dDLdz_is_the_gradient(cosmo):
     is the same as the value obtained with autodiff.
     """
     jax = pytest.importorskip("jax")
-    set_backend("jax")
     enable_units()
 
     ours, _ = get_equivalent_cosmologies(cosmo)

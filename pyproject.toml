@@ -21,6 +21,7 @@ dependencies = [
     "scipy",
     "astropy>=6.1",
     "plum-dispatch",
+    "array-api-compat",
 ]
 dynamic = ["version"]
 

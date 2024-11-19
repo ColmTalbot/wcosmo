@@ -10,6 +10,8 @@ We include two additional constants that are useful for out default units:
 
 from astropy import units
 
+from .utils import convert_quantity_if_necessary
+
 __all__ = ["USE_UNITS", "c_km_per_s", "gyr_km_per_s_mpc"]
 
 
@@ -18,7 +20,7 @@ def __getattr__(name):
     if value is None:
         raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
     if USE_UNITS:
-        value = value << _UNITS[name]
+        value = convert_quantity_if_necessary(value, _UNITS[name])
     return value
 
 

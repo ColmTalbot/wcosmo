@@ -20,14 +20,19 @@ dependencies = [
     "numpy",
     "scipy",
     "astropy>=6.1",
+    "plum-dispatch",
+    "array-api-compat",
 ]
 dynamic = ["version"]
 
 [project.optional-dependencies]
 test = [
     "pytest-cov",
-    "gwpopulation",
-    "jax>=0.4.16",
+    "jax>=0.4.34",
+    "unxt",
+]
+jax = [
+    "jax>=0.4.34",
     "unxt",
 ]
 
@@ -36,17 +41,3 @@ packages = ["wcosmo"]
 
 [tool.setuptools_scm]
 write_to = "wcosmo/_version.py"
-
-[project.entry-points."gwpopulation.xp"]
-wcosmo = "wcosmo.wcosmo"
-wcosmo-analytic = "wcosmo.analytic"
-wcosmo-astropy = "wcosmo.astropy"
-wcosmo-integrate = "wcosmo.integrate"
-wcosmo-taylor = "wcosmo.taylor"
-wcosmo-utils = "wcosmo.utils"
-
-[project.entry-points."gwpopulation.scs"]
-wcosmo-analytic = "wcosmo.analytic"
-
-[project.entry-points."gwpopulation.other"]
-wcosmo-taylor = "wcosmo.taylor:scipy.linalg.toeplitz"

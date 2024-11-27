@@ -1,15 +1,19 @@
+from typing import Union
+
 import numpy as np
 import scipy.special as scs
+from plum import dispatch
 
 from .utils import autodoc
-
-xp = np
 
 __all__ = ["indefinite_integral_hypergeometric"]
 
 
+@dispatch
 @autodoc
-def indefinite_integral_hypergeometric(z, Om0, w0=-1, zpower=0):
+def indefinite_integral_hypergeometric(
+    z: Union[float, int, np.ndarray], Om0, w0=-1, zpower=0
+):
     r"""
     Compute the integral of :math:`(1+z)^k / E(z)` as described in
     https://doi.org/10.4236/jhepgc.2021.73057.
@@ -61,20 +65,19 @@ def indefinite_integral_hypergeometric(z, Om0, w0=-1, zpower=0):
     This has been discussed in :code:`cupy` and may be implemented in the
     future (https://github.com/cupy/cupy/issues/8274).
     """
-    if xp.__name__ == "jax.numpy":
-        from ._hyp2f1_jax import hyp2f1
-    else:
-        from scipy.special import hyp2f1
+    return _indefinite_integral_hypergeometric(
+        z, Om0=Om0, w0=w0, zpower=zpower, hyp2f1=scs.hyp2f1, beta=scs.beta
+    )
+
+
+def _indefinite_integral_hypergeometric(
+    z: np.ndarray, Om0, w0=-1, zpower=0, *, hyp2f1=None, beta=None
+):
     value = (1 + z) ** (zpower - 1 / 2)
+    x = (Om0 - 1) / Om0 * (1 + z) ** (3 * w0)
     aa = 1 / 2
-    # jax will evaluate all the branches of the analytic integral and so we
-    # need to manually catch zero division errors.
-    try:
-        x = (Om0 - 1) / Om0 * (1 + z) ** (3 * w0)
-        bb = (zpower - 1 / 2) / (3 * w0)
-    except ZeroDivisionError:
-        return z * 0.0
+    bb = (zpower - 1 / 2) / (3 * w0)
     cc = bb + 1
     values = hyp2f1(aa, bb, cc, x)
-    normalization = scs.beta(bb, cc - bb) * values / (3 * w0 * Om0**0.5)
+    normalization = beta(bb, cc - bb) * values / (3 * w0 * Om0**0.5)
     return value * normalization

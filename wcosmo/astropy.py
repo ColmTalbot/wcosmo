@@ -12,19 +12,42 @@ By changing the backend and disabling units, these classes can then be used with
 import sys
 
 import astropy.cosmology as _acosmo
-import numpy as xp
-from astropy import units
+from array_api_compat import is_array_api_obj
+from astropy.units import Quantity
 
-from .utils import autodoc, convert_quantity_if_necessary, method_autodoc, strip_units
-from .wcosmo import *
+from .utils import (
+    array_namespace,
+    autodoc,
+    convert_quantity_if_necessary,
+    default_array_namespace,
+    method_autodoc,
+    strip_units,
+)
+from .wcosmo import (
+    absorption_distance,
+    comoving_distance,
+    comoving_volume,
+    dDLdz,
+    detector_to_source_frame,
+    differential_comoving_volume,
+    efunc,
+    hubble_distance,
+    hubble_parameter,
+    hubble_time,
+    inv_efunc,
+    lookback_time,
+    luminosity_distance,
+    source_to_detector_frame,
+)
 
 USE_UNITS = True
 
 __all__ = [
     "FlatwCDM",
     "FlatLambdaCDM",
+    "WCosmoMixin",
     "available",
-]
+] + list(_acosmo.available)
 
 
 class WCosmoMixin:
@@ -65,7 +88,12 @@ class WCosmoMixin:
 
     @H0.setter
     def H0(self, value):
-        self._H0 = convert_quantity_if_necessary(value, unit="km s^-1 Mpc^-1")
+        if is_array_api_obj(value):
+            xp = array_namespace(value)
+        else:
+            xp = default_array_namespace()
+        value = convert_quantity_if_necessary(value, unit="km s^-1 Mpc^-1", xp=xp)
+        self._H0 = value
 
     @property
     def _kwargs(self):
@@ -172,7 +200,8 @@ class WCosmoMixin:
         age: array_like
             The age of the universe in Gyr
         """
-        return self.lookback_time(zmax) - self.lookback_time(z)
+        xp = array_namespace(z)
+        return self.lookback_time(xp.array(zmax)) - self.lookback_time(z)
 
     comoving_transverse_distance = comoving_distance
 
@@ -190,10 +219,11 @@ class WCosmoMixin:
         distmod: array_like
             The distance modulus (units: mag)
         """
+        xp = array_namespace(z)
         distance = strip_units(self.luminosity_distance(z))
         value = 5 * xp.log10(xp.abs(distance)) + 25
         if USE_UNITS:
-            value <<= units.mag
+            value = convert_quantity_if_necessary(value, unit="mag", xp=xp)
         return value
 
     @autodoc
@@ -293,6 +323,14 @@ class FlatwCDM(WCosmoMixin):
         >>> z = 0.5
         >>> dc = cosmo.comoving_distance(z)
         """
+        xp = default_array_namespace()
+        if not is_array_api_obj(H0):
+            H0 = xp.array(H0)
+        if not is_array_api_obj(Om0):
+            Om0 = xp.array(Om0)
+        if not is_array_api_obj(w0):
+            w0 = xp.array(w0)
+
         self.H0 = H0
         self.Om0 = Om0
         self.w0 = w0
@@ -377,9 +415,15 @@ class FlatLambdaCDM(WCosmoMixin):
         >>> z = 0.5
         >>> dc = cosmo.comoving_distance(z)
         """
+        xp = default_array_namespace()
+        if not is_array_api_obj(H0):
+            H0 = xp.array(H0)
+        if not is_array_api_obj(Om0):
+            Om0 = xp.array(Om0)
+
         self.H0 = H0
         self.Om0 = Om0
-        self.w0 = -1
+        self.w0 = xp.array(-1.0)
         self.zmin = zmin
         self.zmax = zmax
         self.method = method
@@ -391,17 +435,18 @@ _known_cosmologies = dict()
 
 
 def __getattr__(name):
-    if f"{name}_{xp.__name__}" in _known_cosmologies:
-        return _known_cosmologies[f"{name}_{xp.__name__}"]
-    elif name not in __all__:
+    if name in _acosmo.available:
+        xp = default_array_namespace()
         alt = _acosmo.__getattr__(name)
         params = {
-            key: convert_quantity_if_necessary(arg)
+            key: convert_quantity_if_necessary(arg, xp=xp)
             for key, arg in alt.parameters.items()
         }
         cosmo = FlatLambdaCDM(**params)
         _known_cosmologies[f"{name}_{xp.__name__}"] = cosmo
         return cosmo
+    elif name not in __all__:
+        raise AttributeError(f"module {__name__} has no attribute {name}")
 
 
 class _Available:

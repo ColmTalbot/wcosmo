@@ -7,7 +7,7 @@ with :code:`numpy`-like backends, e.g., :code:`jax` and :code:`cupy`.
 There are two main features leading to superior efficiency to :code:`astropy`:
 
 - Integrals of :math:`E(z)` and related functions are performed analytically
-  with Pade approximations.
+  with Pade approximations or analytic expressions using hypergeometric functions.
 - Support for :code:`jax` and :code:`cupy` backends allow hardware
   acceleration, just-in-time compilation, and automatic differentiation.
 
@@ -17,7 +17,8 @@ The primary limitations are:
   equations of state, e.g., :code:`FlatwCDM`.
 - Approximations to the various integrals generally agree with :code:`astropy`
   at the <0.1% level.
-- The :code:`astropy` units are incompatible with non-:code:`numpy` backends.
+- The :code:`astropy` units are incompatible with the :code:`cupy` backend.
+  Units are supported with the :code:`jax` backend using :code:`unxt`.
 
 Installation and contribution
 -----------------------------
@@ -61,6 +62,22 @@ To import an astropy-like cosmology
     >>> cosmology = FlatwCDM(H0=70, Om0=0.3, w0=-1)
     >>> cosmology.luminosity_distance(1)
 
+The built-in cosmologies in :code:`astropy` are all available, e.g.,
+
+.. code-block:: python
+
+    >>> from wcosmo import Planck18
+    >>> Planck18.luminosity_distance(1)
+    <Quantity 6797.43628659 Mpc>
+  
+they can also be accessed using :code:`wcosmo.available`
+
+.. code-block:: python
+
+    >>> from wcosmo import available
+    >>> available["Planck18"].luminosity_distance(1)
+    <Quantity 6797.43628659 Mpc>
+
 Explicit usage of :code:`astropy` units can be freely enabled/disabled.
 In this case, the values will have the default units for each method.
 
@@ -78,32 +95,19 @@ In this case, the values will have the default units for each method.
     >>> cosmology.luminosity_distance(1)
     <Quantity 6607.65773208 Mpc>
 
-GWPopulation
-^^^^^^^^^^^^
-
-The primary intention for this package is for use with :code:`GWPopulation`.
-This code is automatically used in :code:`GWPopulation` when using either
-:code:`gwpopulation.experimental.cosmo_models.CosmoModel` and/or
-:code:`PowerLawRedshift`
 
 Changing backend
 ^^^^^^^^^^^^^^^^
 
-The backend can be switched automatically using, e.g.,
+:code:`wcosmo` mostly relies on implicit backend switching. The backend is
+determined automatically based on the input arguments. When an input value is
+a :code:`Python` built-in type, the default backend is chosen using the
+environment variable :code:`WCOSMO_ARRAY_API`. The default is :code:`numpy`.
 
-.. code-block:: python
+GWPopulation
+^^^^^^^^^^^^
 
-    >>> import gwpopulation
-    >>> gwpopulation.backend.set_backend("jax")
-
-Manual backend setting can be done as follows:
-
-.. code-block:: python
-
-    >>> import jax.numpy as jnp
-    >>> from jax.scipy.linalg.toeplitz import toeplitz
-
-    >>> from wcosmo import wcosmo, utils
-    >>> wcosmo.xp = jnp
-    >>> utils.xp = jnp
-    >>> utils.toeplitz = toeplitz
+The original intention for this package was for use with :code:`GWPopulation`.
+This code is automatically used in :code:`GWPopulation` when using either
+:code:`gwpopulation.experimental.cosmo_models.CosmoModel` and/or
+:code:`PowerLawRedshift`

@@ -5,11 +5,10 @@ These functions and their integral are estimated using the Pade approximation.
 """
 
 import numpy as np
-from scipy.linalg import toeplitz
+from plum import Function, dispatch
+from scipy.interpolate import pade as sc_pade
 
-from .utils import autodoc
-
-xp = np
+from .utils import array_namespace, autodoc
 
 __all__ = [
     "flat_wcdm_pade_coefficients",
@@ -18,55 +17,16 @@ __all__ = [
 ]
 
 
-def pade(an, m, n=None):
-    """
-    Return Pade approximation to a polynomial as the ratio of two polynomials.
-
-    Parameters
-    ----------
-    an : (N,) array_like
-        Taylor series coefficients.
-    m : int
-        The order of the returned approximating polynomial `q`.
-    n : int, optional
-        The order of the returned approximating polynomial `p`. By default,
-        the order is ``len(an)-1-m``.
-
-    Returns
-    -------
-    p, q : Polynomial class
-        The Pade approximation of the polynomial defined by `an` is
-        ``p(x)/q(x)``.
-
-    Notes
-    -----
-    This code has been slightly edited from the scipy implementation to:
-
-    - Use xp instead of np to support multiple backends
-    - Directly use the fact that part of the matrix is Toeplitz
-
-    """
-    an = xp.asarray(an)
-    if n is None:
-        n = len(an) - 1 - m
-        if n < 0:
-            raise ValueError("Order of q <m> must be smaller than len(an)-1.")
-    if n < 0:
-        raise ValueError("Order of p <n> must be greater than 0.")
-    N = m + n
-    if N > len(an) - 1:
-        raise ValueError("Order of q+p <m+n> must be smaller than len(an).")
-    an = an[: N + 1]
-    Akj = xp.eye(N + 1, n + 1, dtype=an.dtype)
-    Bkj = toeplitz(xp.r_[0.0, -an[:-1]], xp.zeros(m))
-    Ckj = xp.hstack((Akj, Bkj))
-    pq = xp.linalg.solve(Ckj, an)
-    p = pq[: n + 1]
-    q = xp.r_[1.0, pq[n + 1 :]]
-    return p[::-1], q[::-1]
+pade = Function(sc_pade)
 
 
-def _binomial_coefficients():
+@dispatch
+def pade(*args, **kwargs):  # noqa: F811
+    p, q = sc_pade(*args, **kwargs)
+    return p.coeffs, q.coeffs
+
+
+def _binomial_coefficients(*, xp):
     return xp.array(
         [
             1,
@@ -91,7 +51,7 @@ def _binomial_coefficients():
 
 
 @autodoc
-def flat_wcdm_taylor_expansion(w0, zpower=0):
+def flat_wcdm_taylor_expansion(w0, zpower=0, *, xp=np):
     r"""
     Taylor coefficients expansion of :math:`E(z)` as as a function
     of :math:`w_0` and an arbitrary power :math:`k` of :math:`1 + z`.
@@ -115,11 +75,11 @@ def flat_wcdm_taylor_expansion(w0, zpower=0):
     """
     what = (w0 + abs(w0)) / 2
     denominator = 1 - 2 * zpower + 6 * abs(w0) * xp.arange(0, 17) + 3 * what
-    return _binomial_coefficients() / denominator
+    return _binomial_coefficients(xp=xp) / denominator
 
 
 @autodoc
-def flat_wcdm_pade_coefficients(w0=-1, zpower=0):
+def flat_wcdm_pade_coefficients(w0=-1, zpower=0, *, xp=np):
     """
     Compute the Pade coefficients as described in arXiv:1111.6396.
     We make two primary changes:
@@ -137,7 +97,7 @@ def flat_wcdm_pade_coefficients(w0=-1, zpower=0):
     p, q: array_like
         The Pade coefficients
     """
-    coeffs = flat_wcdm_taylor_expansion(w0, zpower=zpower)
+    coeffs = flat_wcdm_taylor_expansion(w0, zpower=zpower, xp=xp)
     p, q = pade(coeffs, len(coeffs) // 2, len(coeffs) // 2)
     return p, q
 
@@ -180,16 +140,14 @@ def indefinite_integral_pade(z, Om0, w0=-1, zpower=0):
     I: array_like
         The indefinite integral of :math:`(1+z)^k / E(z)`
     """
+    xp = array_namespace(z)
     what = (w0 + abs(w0)) / 2
-    sign = xp.sign(w0)
+    sign = xp.sign(xp.array(w0))
     abs_sign = abs(sign)
     gamma = (Om0 ** (sign - abs_sign) * (1 - Om0) ** (-sign - abs_sign)) ** 0.25
     normalization = -2 * gamma * (1 + z) ** (zpower - 0.5 - 3 * what / 2)
-    # jax will evaluate all the branches of the pade integral and so we
-    # need to manually catch zero division errors.
-    try:
+    Om0 = xp.array(Om0)
+    with np.errstate(divide="ignore"):
         x = (Om0 / (1 - Om0)) ** sign * (1 + z) ** (-3 * abs(w0))
-    except ZeroDivisionError:
-        return z * 0.0
-    p, q = flat_wcdm_pade_coefficients(w0=w0, zpower=zpower)
+    p, q = flat_wcdm_pade_coefficients(w0=w0, zpower=zpower, xp=xp)
     return normalization * (xp.polyval(p, x) / xp.polyval(q, x)) ** abs_sign

@@ -1,47 +1,46 @@
-import gwpopulation
-import pytest
-from astropy import units as u
+import os
 
-from ..astropy import FlatLambdaCDM, available
+import pytest
+from astropy.cosmology import available
+
+from ..backend import AVAILABLE_BACKENDS
 from ..utils import disable_units, enable_units
 
-h_unit = u.km / u.s / u.Mpc
-
-# FIXME: make the commented test cases work
 test_points = [
-    dict(H0=70 * h_unit, Om0=0.0, w0=-1),
-    dict(H0=70 * h_unit, Om0=0.1, w0=-1),
-    dict(H0=70 * h_unit, Om0=0.9, w0=-1),
-    dict(H0=70 * h_unit, Om0=1.0, w0=-1),
-    dict(H0=70 * h_unit, Om0=0.0, w0=-1.1),
-    dict(H0=70 * h_unit, Om0=0.1, w0=-1.1),
-    dict(H0=70 * h_unit, Om0=0.9, w0=-1.1),
-    dict(H0=70 * h_unit, Om0=1.0, w0=-1.1),
-    dict(H0=70 * h_unit, Om0=0.0, w0=0.0),
-    dict(H0=70 * h_unit, Om0=0.1, w0=0.0),
-    dict(H0=70 * h_unit, Om0=0.9, w0=0.0),
-    dict(H0=70 * h_unit, Om0=1.0, w0=0.0),
+    dict(H0=70.0, Om0=0.0, w0=-1),
+    dict(H0=70.0, Om0=0.1, w0=-1),
+    dict(H0=70.0, Om0=0.9, w0=-1),
+    dict(H0=70.0, Om0=1.0, w0=-1),
+    dict(H0=70.0, Om0=0.0, w0=-1.1),
+    dict(H0=70.0, Om0=0.1, w0=-1.1),
+    dict(H0=70.0, Om0=0.9, w0=-1.1),
+    dict(H0=70.0, Om0=1.0, w0=-1.1),
+    dict(H0=70.0, Om0=0.0, w0=0.0),
+    dict(H0=70.0, Om0=0.1, w0=0.0),
+    dict(H0=70.0, Om0=0.9, w0=0.0),
+    dict(H0=70.0, Om0=1.0, w0=0.0),
 ]
 
 
-@pytest.fixture(params=["numpy", "jax", "cupy"])
+@pytest.fixture(params=AVAILABLE_BACKENDS)
 def backend(request):
     pytest.importorskip(request.param)
-    gwpopulation.set_backend(request.param)
-    return request.param
+    os.environ["WCOSMO_ARRAY_API"] = request.param
+    match request.param:
+        case "numpy":
+            import numpy as xp
+        case "jax":
+            import jax
+            import jax.numpy as xp
+
+            jax.config.update("jax_enable_x64", True)
+        case "cupy":
+            import cupy as xp
+    return xp
 
 
-@pytest.fixture
-def npy():
-    return gwpopulation.set_backend("numpy")
-
-
-@pytest.fixture(params=list(available.keys()) + test_points)
+@pytest.fixture(params=list(available) + test_points)
 def cosmo(request):
-    if isinstance(request.param, str):
-        ours = available[request.param]
-        if not isinstance(ours, FlatLambdaCDM):
-            pytest.skip()
     return request.param
 
 

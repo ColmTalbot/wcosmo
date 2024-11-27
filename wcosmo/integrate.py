@@ -1,10 +1,12 @@
-import numpy as xp
+from functools import partial
+
+from plum import dispatch
 
 from .analytic import indefinite_integral_hypergeometric
 from .taylor import indefinite_integral_pade
-from .utils import autodoc, maybe_jit
+from .utils import array_namespace, autodoc, maybe_jit
 
-__all__ = ["analytic_integral"]
+__all__ = ["analytic_integral", "indefinite_integral"]
 
 
 @autodoc
@@ -102,49 +104,28 @@ def analytic_integral(z, Om0, w0=-1, zpower=0, method="pade"):
     >>> wcosmo.absorption_distance(2,Om0=0.3)
     4.36995
     """
+    xp = array_namespace(z)
     kwargs = dict(Om0=Om0, w0=w0, zpower=zpower, method=method)
-    return indefinite_integral(z, **kwargs) - indefinite_integral(0, **kwargs)
+    return indefinite_integral(z, **kwargs) - indefinite_integral(
+        xp.array(0.0), **kwargs
+    )
 
 
-# @autodoc
-@maybe_jit
-def indefinite_integral(z, Om0, w0=-1, zpower=0, method="pade"):
-    if xp.__name__ == "jax.numpy":
-        return _indefinite_integral_jax(z, Om0, w0, zpower, method=method)
-    else:
-        return _indefinite_integral_generic(z, Om0, w0, zpower, method=method)
-
-
-@maybe_jit
-def _indefinite_integral_generic(z, Om0, w0=-1, zpower=0, method="pade"):
+@partial(maybe_jit, static_argnames=("method",))
+@dispatch
+def indefinite_integral(z, Om0=None, w0=-1, zpower=0, method="pade"):
     if (Om0 == 0) | (Om0 == 1) | (w0 == 0):
-        power = zpower - 1 / 2 - (3 * w0 / 2) * (Om0 == 0)
-        if power != 0:
-            return (1 + z) ** power / power
-        else:
-            return xp.log(1 + z)
+        return indefinite_integral_one_component(z, Om0, w0, zpower)
     elif method == "pade":
         return indefinite_integral_pade(z, Om0, w0, zpower)
     else:
         return indefinite_integral_hypergeometric(z, Om0, w0, zpower)
 
 
-@maybe_jit
-def _indefinite_integral_jax(z, Om0, w0=-1, zpower=0, method="pade"):
-    import jax
-
-    power = zpower - 1 / 2 - 3 * w0 / 2 * (Om0 == 0)
-    return jax.lax.select(
-        (Om0 == 0) | (Om0 == 1) | (w0 == 0),
-        jax.lax.cond(
-            power != 0,
-            lambda z: (1 + z) ** power / power,
-            lambda z: jax.numpy.log(1.0 + z),
-            z,
-        ),
-        jax.lax.select(
-            method == "pade",
-            indefinite_integral_pade(z, Om0, w0, zpower),
-            indefinite_integral_hypergeometric(z, Om0, w0, zpower),
-        ),
-    )
+def indefinite_integral_one_component(z, Om0, w0=-1, zpower=0):
+    xp = array_namespace(z)
+    power = zpower - 1 / 2 - (3 * w0 / 2) * (Om0 == 0)
+    if power != 0:
+        return (1 + z) ** power / power
+    else:
+        return xp.log1p(z)

@@ -3,13 +3,13 @@ API Reference
 
 .. currentmodule:: wcosmo
 
-.. autosummary::
-   :toctree: .
-   :template: custom-module-template.rst
+.. toctree::
    :caption: API
-   :recursive:
+   :maxdepth: 1
 
+   analytic
    astropy
+   integrate
    taylor
    utils
    wcosmo

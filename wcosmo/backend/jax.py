@@ -27,9 +27,7 @@ def hyp2f1(a, b, c, z):
         shape=jnp.broadcast_shapes(a.shape, b.shape, c.shape, z.shape), dtype=z.dtype
     )
 
-    return jax.pure_callback(
-        _scipy_hyp2f1, result_shape_dtype, a, b, c, z, vectorized=True
-    )
+    return jax.pure_callback(_scipy_hyp2f1, result_shape_dtype, a, b, c, z)
 
 
 hyp2f1 = jax.custom_jvp(hyp2f1)

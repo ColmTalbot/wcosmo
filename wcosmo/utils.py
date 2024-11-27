@@ -198,9 +198,8 @@ def convert_quantity_if_necessary(arg, unit=None, xp=np):
     if not USE_UNITS:
         return strip_units(arg)
 
-    if (
-        xp.__name__ in ["jax.numpy", "quaxed.numpy"]
-        and (isinstance(arg, _Quantity) or unit is not None)
+    if xp.__name__ in ["jax.numpy", "quaxed.numpy"] and (
+        isinstance(arg, _Quantity) or unit is not None
     ):
         from unxt import Quantity
 

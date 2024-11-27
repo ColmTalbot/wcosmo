@@ -40,7 +40,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          conda install --file doc/pages_requirements.txt
+          # conda install --file doc/pages_requirements.txt
+          pip install -r doc/pages_requirements.txt
           python -m pip install .
 
       - name: Build documentation

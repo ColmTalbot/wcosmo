@@ -115,7 +115,7 @@ def hubble_time(H0, *, xp=np):
     t_H: float
         The Hubble time in Gyr
     """
-    return constants.get("gyr_km_per_s_mpc", xp)  / H0
+    return constants.get("gyr_km_per_s_mpc", xp) / H0
 
 
 @autodoc
@@ -351,7 +351,7 @@ def differential_comoving_volume(z, H0, Om0, w0=-1, method="pade"):
     dC = comoving_distance(z, H0, Om0, w0=w0, method=method)
     Ez_i = inv_efunc(z, Om0, w0=w0)
     D_H = hubble_distance(H0, xp=xp)
-    sr = constants.get("steradian", xp) 
+    sr = constants.get("steradian", xp)
     return dC**2 * D_H * Ez_i / sr
 
 

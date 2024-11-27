@@ -28,9 +28,7 @@ def __getattr__(name):
 def get(name, xp):
     if name not in _VALUES:
         raise KeyError(f"Invalid constant {name}")
-    return convert_quantity_if_necessary(
-        _VALUES[name], _UNITS.get(name, None), xp
-    )
+    return convert_quantity_if_necessary(_VALUES[name], _UNITS.get(name, None), xp)
 
 
 USE_UNITS = True

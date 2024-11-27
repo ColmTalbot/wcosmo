@@ -88,12 +88,11 @@ class WCosmoMixin:
 
     @H0.setter
     def H0(self, value):
-        if not isinstance(value, Quantity):
-            if is_array_api_obj(value):
-                xp = array_namespace(value)
-            else:
-                xp = default_array_namespace()
-            value = convert_quantity_if_necessary(value, unit="km s^-1 Mpc^-1", xp=xp)
+        if is_array_api_obj(value):
+            xp = array_namespace(value)
+        else:
+            xp = default_array_namespace()
+        value = convert_quantity_if_necessary(value, unit="km s^-1 Mpc^-1", xp=xp)
         self._H0 = value
 
     @property

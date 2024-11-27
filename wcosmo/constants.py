@@ -25,6 +25,14 @@ def __getattr__(name):
     return value
 
 
+def get(name, xp):
+    if name not in _VALUES:
+        raise KeyError(f"Invalid constant {name}")
+    return convert_quantity_if_necessary(
+        _VALUES[name], _UNITS.get(name, None), xp
+    )
+
+
 USE_UNITS = True
 _VALUES = dict(
     c_km_per_s=299792.4580,

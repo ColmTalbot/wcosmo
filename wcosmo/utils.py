@@ -53,6 +53,8 @@ __all__ = [
     "strip_units",
 ]
 
+USE_UNITS = True
+
 
 def autodoc(func):
     """
@@ -80,10 +82,13 @@ def _set_units(val):
     """
     Set the use of astropy units throughout the package
     """
+    global USE_UNITS
+
     from . import astropy, constants
 
     constants.USE_UNITS = val
     astropy.USE_UNITS = val
+    USE_UNITS = val
 
 
 def method_autodoc(alt=None):
@@ -190,7 +195,13 @@ def convert_quantity_if_necessary(arg, unit=None, xp=np):
     """
     from astropy.units import Quantity as _Quantity
 
-    if xp.__name__ == "jax.numpy" and (isinstance(arg, _Quantity) or unit is not None):
+    if not USE_UNITS:
+        return strip_units(arg)
+
+    if (
+        xp.__name__ in ["jax.numpy", "quaxed.numpy"]
+        and (isinstance(arg, _Quantity) or unit is not None)
+    ):
         from unxt import Quantity
 
         if unit is None:

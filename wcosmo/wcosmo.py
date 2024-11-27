@@ -98,11 +98,11 @@ def hubble_distance(H0, *, xp=np):
     D_H: float
         The Hubble distance in Mpc
     """
-    return constants.c_km_per_s / H0
+    return constants.get("c_km_per_s", xp) / H0
 
 
 @autodoc
-def hubble_time(H0):
+def hubble_time(H0, *, xp=np):
     r"""
     Compute the Hubble time :math:`t_H = H_0^{{-1}}` in Gyr.
 
@@ -115,7 +115,7 @@ def hubble_time(H0):
     t_H: float
         The Hubble time in Gyr
     """
-    return constants.gyr_km_per_s_mpc / H0
+    return constants.get("gyr_km_per_s_mpc", xp)  / H0
 
 
 @autodoc
@@ -197,7 +197,7 @@ def lookback_time(z, H0, Om0, w0=-1, method="pade"):
     xp = array_namespace(z)
     return analytic_integral(
         z, Om0, w0, zpower=xp.array(-1), method=method
-    ) * hubble_time(H0)
+    ) * hubble_time(H0, xp=xp)
 
 
 @partial(maybe_jit, static_argnames=("method",))
@@ -351,7 +351,7 @@ def differential_comoving_volume(z, H0, Om0, w0=-1, method="pade"):
     dC = comoving_distance(z, H0, Om0, w0=w0, method=method)
     Ez_i = inv_efunc(z, Om0, w0=w0)
     D_H = hubble_distance(H0, xp=xp)
-    sr = convert_quantity_if_necessary(constants.steradian, xp=xp)
+    sr = constants.get("steradian", xp) 
     return dC**2 * D_H * Ez_i / sr
 
 

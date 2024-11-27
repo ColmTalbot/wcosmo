@@ -38,3 +38,5 @@ python:
   - requirements: doc/pages_requirements.txt
   - method: pip
     path: .
+    extra_requirements:
+      - test

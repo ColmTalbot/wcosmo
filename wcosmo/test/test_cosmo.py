@@ -29,7 +29,6 @@ EPS = 1e-2
 
 def to_numpy(arr):
     xp = array_namespace(arr)
-    print(xp, type(arr), xp.__name__)
     if "cupy" in xp.__name__:
         return arr.get()
     else:

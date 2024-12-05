@@ -1,3 +1,4 @@
+import os
 import warnings
 
 import numpy as np
@@ -6,7 +7,7 @@ from astropy import cosmology
 from scipy.integrate import IntegrationWarning
 
 from .. import astropy, wcosmo
-from ..utils import disable_units, enable_units, strip_units
+from ..utils import array_namespace, disable_units, enable_units, strip_units
 
 funcs = [
     "luminosity_distance",
@@ -26,6 +27,14 @@ funcs = [
 EPS = 1e-2
 
 
+def to_numpy(arr):
+    xp = array_namespace(arr)
+    if "cupy" in xp.__name__:
+        return arr.get()
+    else:
+        return np.asarray(arr)
+
+
 def get_equivalent_cosmologies(cosmo):
     if isinstance(cosmo, str):
         ours = astropy.available[cosmo]
@@ -38,7 +47,7 @@ def get_equivalent_cosmologies(cosmo):
 
 @pytest.mark.parametrize("func", funcs)
 def test_redshift_function(cosmo, func, backend, units, method):
-    if units and ("cupy" in backend.__name__):
+    if (units or method == "analytic") and ("cupy" in backend.__name__):
         pytest.skip()
     xp = backend
 
@@ -77,11 +86,13 @@ def test_redshift_function(cosmo, func, backend, units, method):
     else:
         eps = EPS
     assert isinstance(ours, xp.ndarray)
-    assert max(abs(ours - theirs) / theirs) < eps
+    assert max(abs(to_numpy(ours) - theirs) / theirs) < eps
 
 
 @pytest.mark.parametrize("func", funcs[:3])
 def test_z_at_value(cosmo, func, backend, method):
+    if "cupy" in backend.__name__ and method == "analytic":
+        pytest.skip()
     disable_units()
     xp = backend
 
@@ -106,7 +117,7 @@ def test_z_at_value(cosmo, func, backend, method):
     object.__setattr__(instance, "method", "pade")
 
     assert isinstance(ours, xp.ndarray)
-    assert max(abs(ours - theirs) / theirs) < EPS
+    assert max(abs(to_numpy(ours) - theirs) / theirs) < EPS
 
 
 @pytest.mark.parametrize("func", ["hubble_time", "hubble_distance"])
@@ -148,6 +159,7 @@ def test_dDLdz_is_the_gradient(cosmo):
     is the same as the value obtained with autodiff.
     """
     jax = pytest.importorskip("jax")
+    os.environ["WCOSMO_ARRAY_API"] = "jax"
     enable_units()
 
     ours, _ = get_equivalent_cosmologies(cosmo)

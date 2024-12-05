@@ -4,9 +4,15 @@
       "url": "https://wcosmo.readthedocs.io/en/latest/"
     },
     {
-      "name": "0.5.0 (stable)",
-      "version": "v0.5.0",
+      "name": "0.5.1 (stable)",
+      "version": "v0.5.1",
       "url": "https://wcosmo.readthedocs.io/en/stable/",
+      "preferred": true
+    },
+    {
+      "name": "0.5.0",
+      "version": "v0.5.0",
+      "url": "https://wcosmo.readthedocs.io/en/v0.5.0/",
       "preferred": true
     },
     {
@@ -24,7 +30,7 @@
     { 
      "name": "0.3.0",
       "version": "v0.3.0",
-      "url": "https://wcosmo.readthedocs.io/en/stable/",
+      "url": "https://wcosmo.readthedocs.io/en/v0.3.0/",
       "preferred": true
     }
 ]

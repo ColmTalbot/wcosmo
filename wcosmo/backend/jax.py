@@ -72,7 +72,7 @@ def _indefinite_integral_two_component(z, Om0, w0=-1, zpower=0, method="pade"):
 
     if method != "pade":
         raise ValueError("wcosmo only supports pade integration with JAX")
-    
+
     return indefinite_integral_pade(z, Om0, w0, zpower)
 
 

@@ -70,15 +70,10 @@ def indefinite_integral_hypergeometric(z: jax.Array, Om0, w0=-1, zpower=0):
 def _indefinite_integral_two_component(z, Om0, w0=-1, zpower=0, method="pade"):
     from ..taylor import indefinite_integral_pade
 
-    return jax.lax.cond(
-        method == "pade",
-        indefinite_integral_pade,
-        indefinite_integral_hypergeometric,
-        z,
-        Om0,
-        w0,
-        zpower,
-    )
+    if method != "pade":
+        raise ValueError("wcosmo only supports pade integration with JAX")
+    
+    return indefinite_integral_pade(z, Om0, w0, zpower)
 
 
 @jax.jit

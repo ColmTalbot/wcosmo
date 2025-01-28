@@ -28,11 +28,11 @@ dynamic = ["version"]
 [project.optional-dependencies]
 test = [
     "pytest-cov",
-    "jax>=0.4.34",
+    "jax>=0.4.34,<0.4.36",
     "unxt",
 ]
 jax = [
-    "jax>=0.4.34",
+    "jax>=0.4.34,<0.4.36",
     "unxt",
 ]
 

@@ -47,7 +47,7 @@ def get_equivalent_cosmologies(cosmo):
 
 @pytest.mark.parametrize("func", funcs)
 def test_redshift_function(cosmo, func, backend, units, method):
-    if (units or method == "analytic") and ("cupy" in backend.__name__):
+    if (units or method == "analytic") and (backend != np):
         pytest.skip()
     xp = backend
 
@@ -91,7 +91,7 @@ def test_redshift_function(cosmo, func, backend, units, method):
 
 @pytest.mark.parametrize("func", funcs[:3])
 def test_z_at_value(cosmo, func, backend, method):
-    if "cupy" in backend.__name__ and method == "analytic":
+    if backend != np and method == "analytic":
         pytest.skip()
     disable_units()
     xp = backend

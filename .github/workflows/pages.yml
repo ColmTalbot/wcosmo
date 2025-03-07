@@ -50,8 +50,8 @@ jobs:
           cp examples/accuracy_comparisons_with_astropy.ipynb doc/source/examples/astropy_comparisons.ipynb
           cp examples/integration_method_comparisons.ipynb doc/source/examples/integral_comparisons.ipynb
           cd doc
-          make clean
-          make html
+          make SPHINXBUILD="mamba run -n test python -m sphinx" clean
+          make SPHINXBUILD="mamba run -n test python -m sphinx" html
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

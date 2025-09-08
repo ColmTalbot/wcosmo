@@ -28,7 +28,6 @@ dynamic = ["version"]
 [project.optional-dependencies]
 test = [
     "pytest-cov",
-    "pytest-cov",
     'jax>=0.4.34,<0.7; python_version>="3.11"',  # quax is not currently compatible with jax 0.7 (https://github.com/patrick-kidger/quax/issues/71)
     'jax>=0.4.34,<0.6; python_version<"3.11"',  # quaxed has dropped 3.10
     "unxt",

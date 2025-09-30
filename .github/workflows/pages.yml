@@ -32,18 +32,18 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Setup conda
-        uses: conda-incubator/setup-miniconda@v3
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
         with:
           python-version: ${{ matrix.python-version }}
-          channels: conda-forge,defaults
-          auto-update-conda: true
-          mamba-version: "*"
 
       - name: Install dependencies
         run: |
-          mamba install -n test --file doc/pages_requirements.txt
-          conda run -n test python -m pip install .[test]
+          uv sync --all-extras --dev
+
+      - name: List installed
+        run: |
+          uv pip list
 
       - name: Build documentation
         run: |
@@ -52,8 +52,8 @@ jobs:
           cp examples/accuracy_comparisons_with_astropy.ipynb doc/source/examples/astropy_comparisons.ipynb
           cp examples/integration_method_comparisons.ipynb doc/source/examples/integral_comparisons.ipynb
           cd doc
-          make SPHINXBUILD="mamba run -n test python -m sphinx" clean
-          make SPHINXBUILD="mamba run -n test python -m sphinx" html
+          make SPHINXBUILD="python -m sphinx" clean
+          make SPHINXBUILD="python -m sphinx" html
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

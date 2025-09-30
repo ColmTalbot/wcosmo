@@ -1,9 +1,10 @@
 repos:
--   repo: https://github.com/ambv/black
-    rev: 24.4.2
-    hooks:
-      - id: black
-        language_version: python3
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  rev: v0.13.2
+  hooks:
+    - id: ruff-check
+      args: [ --fix ]
+    - id: ruff-format
 -   repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
     hooks:
@@ -11,20 +12,5 @@ repos:
 -   repo: https://github.com/codespell-project/codespell
     rev: v2.3.0
     hooks:
-    -   id: codespell # Spellchecker
+    -   id: codespell
         args: [-L, "nd,hist", "--skip", "*.ipynb"]
--   repo: https://github.com/pre-commit/mirrors-isort
-    rev: v5.10.1
-    hooks:
-    -   id: isort # sort imports alphabetically and separates import into sections
-        args: [-w=88, -m=3, --tc, -sp=setup.cfg ]
--   repo: local
-    hooks:
-    -   id: flynt
-        name: flynt
-        entry: flynt
-        args: [--fail-on-change]
-        types: [python]
-        language: python
-        additional_dependencies:
-            - flynt

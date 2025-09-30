@@ -19,9 +19,7 @@ def hyp2f1(a, b, c, z):
     # Note that jnp.result_type() accounts for the enable_x64 flag.
     z = z.astype(jnp.result_type(float, z.dtype))
 
-    _scipy_hyp2f1 = lambda a, b, c, z: sc_hyp2f1(a, b, c, z).astype(
-        z.dtype
-    )  # noqa E731
+    _scipy_hyp2f1 = lambda a, b, c, z: sc_hyp2f1(a, b, c, z).astype(z.dtype)  # noqa E731
 
     result_shape_dtype = jax.ShapeDtypeStruct(
         shape=jnp.broadcast_shapes(a.shape, b.shape, c.shape, z.shape), dtype=z.dtype

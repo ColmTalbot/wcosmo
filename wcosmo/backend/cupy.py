@@ -1,7 +1,6 @@
 import cupy as cp
 from cupy_backends.cuda.api.runtime import CUDARuntimeError
 from cupyx.scipy.linalg import toeplitz
-from plum import dispatch
 
 from ..taylor import pade
 

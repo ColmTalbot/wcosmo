@@ -32,31 +32,22 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Setup conda
-      uses: conda-incubator/setup-miniconda@v3
+    - name: Install uv
+      uses: astral-sh/setup-uv@v6
       with:
         python-version: ${{ matrix.python-version }}
-        channels: conda-forge,defaults
-        auto-update-conda: true
-        mamba-version: "*"
     - name: Install dependencies
       run: |
-        mamba install -n test pip setuptools
-        mamba install -n test pip setuptools pre-commit setuptools_scm
-        mamba install -n test jax numpy scipy astropy "gwpopulation>=1" pytest-cov
-        conda run -n test pre-commit install
-    - name: Install gwpopulation
-      run: |
-        conda run -n test python -m pip install .[test]
+        uv sync --all-extras --dev
     - name: List installed
       run: |
-        conda list
+        uv pip list
     - name: Run pre-commit checks
       run: |
-        conda run -n test pre-commit run --all-files --verbose --show-diff-on-failure
+        uv run pre-commit run --all-files --verbose --show-diff-on-failure
     - name: Test with pytest
       run: |
-        conda run -n test pytest --cov wcosmo -ra --color yes --cov-report=xml --junitxml=pytest.xml
+        uv run pytest --cov wcosmo -ra --color yes --cov-report=xml --junitxml=pytest.xml
     - name: Publish coverage to Codecov
       uses: codecov/codecov-action@v4
       with:
@@ -64,7 +55,7 @@ jobs:
         files: coverage.xml
         flags: python${{ matrix.python-version }}
     - name: Coverage report
-      run: conda run -n test python -m coverage report --show-missing
+      run: uv run coverage report --show-missing
     - name: Upload test results
       if: always()
       uses: actions/upload-artifact@v4

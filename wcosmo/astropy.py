@@ -13,7 +13,6 @@ import sys
 
 import astropy.cosmology as _acosmo
 from array_api_compat import is_array_api_obj
-from astropy.units import Quantity
 
 from .utils import (
     array_namespace,
@@ -450,7 +449,6 @@ def __getattr__(name):
 
 
 class _Available:
-
     def keys(self):
         return ("FlatLambdaCDM", "FlatwCDM") + _acosmo.available
 

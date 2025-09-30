@@ -27,6 +27,7 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 test = [
+    "coverage",
     "pre-commit",
     "pytest-cov",
     'jax>=0.4.34,<0.7; python_version>="3.11"',  # quax is not currently compatible with jax 0.7 (https://github.com/patrick-kidger/quax/issues/71)

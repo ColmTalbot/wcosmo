@@ -53,8 +53,8 @@ jobs:
           cp examples/accuracy_comparisons_with_astropy.ipynb doc/source/examples/astropy_comparisons.ipynb
           cp examples/integration_method_comparisons.ipynb doc/source/examples/integral_comparisons.ipynb
           cd doc
-          make SPHINXBUILD="python -m sphinx" clean
-          make SPHINXBUILD="python -m sphinx" html
+          make SPHINXBUILD="uv run python -m sphinx" clean
+          make SPHINXBUILD="uv run python -m sphinx" html
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

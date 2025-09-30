@@ -39,6 +39,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          sudo apt-get update && sudo apt-get install -y pandoc
           uv sync --all-extras --dev
           uv pip install -r doc/pages_requirements.txt
 
@@ -53,8 +54,8 @@ jobs:
           cp examples/accuracy_comparisons_with_astropy.ipynb doc/source/examples/astropy_comparisons.ipynb
           cp examples/integration_method_comparisons.ipynb doc/source/examples/integral_comparisons.ipynb
           cd doc
-          make SPHINXBUILD="uv run python -m sphinx" clean
-          make SPHINXBUILD="uv run python -m sphinx" html
+          uv run make clean
+          uv run make html
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:

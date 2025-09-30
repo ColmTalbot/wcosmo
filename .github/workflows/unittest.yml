@@ -44,10 +44,10 @@ jobs:
         uv pip list
     - name: Run pre-commit checks
       run: |
-        pre-commit run --all-files --verbose --show-diff-on-failure
+        uv run pre-commit run --all-files --verbose --show-diff-on-failure
     - name: Test with pytest
       run: |
-        python -m pytest --cov wcosmo -ra --color yes --cov-report=xml --junitxml=pytest.xml
+        uv run pytest --cov wcosmo -ra --color yes --cov-report=xml --junitxml=pytest.xml
     - name: Publish coverage to Codecov
       uses: codecov/codecov-action@v4
       with:

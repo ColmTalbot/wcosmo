@@ -19,6 +19,7 @@ test_points = [
     dict(H0=70.0, Om0=0.1, w0=0.0),
     dict(H0=70.0, Om0=0.9, w0=0.0),
     dict(H0=70.0, Om0=1.0, w0=0.0),
+    "Planck15_LAL",
 ]
 
 

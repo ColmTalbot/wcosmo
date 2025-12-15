@@ -36,7 +36,20 @@ def to_numpy(arr):
 
 
 def get_equivalent_cosmologies(cosmo):
-    if isinstance(cosmo, str):
+    if cosmo == "Planck15_LAL":
+        ours = astropy.Planck15_LAL
+        try:
+            import lal
+            from astropy import units
+
+            theirs = cosmology.LambdaCDM(
+                H0=lal.H0_SI * units.Hz,
+                Om0=lal.OMEGA_M,
+                Ode0=1 - lal.OMEGA_M,
+            )
+        except ImportError:
+            pytest.skip(f"LAL not available for {cosmo}")
+    elif isinstance(cosmo, str):
         ours = astropy.available[cosmo]
         theirs = getattr(cosmology, cosmo)
     else:

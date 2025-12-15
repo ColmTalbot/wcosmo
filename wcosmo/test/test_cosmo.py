@@ -48,7 +48,7 @@ def get_equivalent_cosmologies(cosmo):
                 Ode0=1 - lal.OMEGA_M,
             )
         except ImportError:
-            pytest.skip(f"Bilby not available for {cosmo}")
+            pytest.skip(f"LAL not available for {cosmo}")
     elif isinstance(cosmo, str):
         ours = astropy.available[cosmo]
         theirs = getattr(cosmology, cosmo)

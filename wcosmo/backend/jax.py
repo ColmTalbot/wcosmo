@@ -56,6 +56,34 @@ def indefinite_integral(z: jax.Array, Om0=None, w0=-1, zpower=0, method="pade"):
 
 @jax.jit
 @dispatch
+def definite_integral(z: jax.Array, Om0=None, w0=-1, zpower=0):
+    from ..taylor import definite_integral_pade
+
+    with np.errstate(divide="ignore"):
+        return jax.lax.cond(
+            (Om0 == 0) | (Om0 == 1) | (w0 == 0),
+            definite_integral_one_component,
+            definite_integral_pade,
+            z,
+            Om0,
+            w0,
+            zpower,
+        )
+
+
+@jax.jit
+def definite_integral_one_component(z, Om0, w0=-1, zpower=0):
+    power = zpower - 1 / 2 - (3 * w0 / 2) * (Om0 == 0)
+    return jax.lax.cond(
+        power != 0,
+        lambda z: jnp.expm1(power * jnp.log1p(z)) / power,
+        lambda z: jnp.log1p(z),
+        z,
+    )
+
+
+@jax.jit
+@dispatch
 def indefinite_integral_hypergeometric(z: jax.Array, Om0, w0=-1, zpower=0):
     from ..analytic import _indefinite_integral_hypergeometric
 

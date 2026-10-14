@@ -9,4 +9,5 @@
     :toctree: _autosummary
 
     analytic_integral
+    definite_integral
     indefinite_integral

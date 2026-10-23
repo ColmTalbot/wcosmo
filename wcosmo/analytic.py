@@ -1,19 +1,14 @@
-from typing import Union
-
 import numpy as np
 import scipy.special as scs
-from plum import dispatch
+from array_api_compat import is_array_api_obj, is_jax_array, is_numpy_array
 
 from .utils import autodoc
 
 __all__ = ["indefinite_integral_hypergeometric"]
 
 
-@dispatch
 @autodoc
-def indefinite_integral_hypergeometric(
-    z: Union[float, int, np.ndarray], Om0, w0=-1, zpower=0
-):
+def indefinite_integral_hypergeometric(z, Om0, w0=-1, zpower=0):
     r"""
     Compute the integral of :math:`(1+z)^k / E(z)` as described in
     https://doi.org/10.4236/jhepgc.2021.73057.
@@ -65,6 +60,14 @@ def indefinite_integral_hypergeometric(
     This has been discussed in :code:`cupy` and may be implemented in the
     future (https://github.com/cupy/cupy/issues/8274).
     """
+    if any(map(is_jax_array, (z, Om0, w0))):
+        from .backend.jax import indefinite_integral_hypergeometric
+
+        return indefinite_integral_hypergeometric(z, Om0, w0, zpower)
+    if is_array_api_obj(z) and not is_numpy_array(z):
+        raise NotImplementedError(
+            "The hypergeometric integral is only implemented for numpy and JAX"
+        )
     return _indefinite_integral_hypergeometric(
         z, Om0=Om0, w0=w0, zpower=zpower, hyp2f1=scs.hyp2f1, beta=scs.beta
     )

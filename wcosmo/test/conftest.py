@@ -1,10 +1,32 @@
 import os
+from importlib.util import find_spec
 
 import pytest
 from astropy.cosmology import available
 
-from ..backend import AVAILABLE_BACKENDS
 from ..utils import disable_units, enable_units
+
+
+def _available_backends():
+    """
+    The installed array backends, :code:`cupy` also needs a GPU.
+    """
+    backends = ["numpy"]
+    if find_spec("jax") is not None:
+        backends.append("jax")
+    if find_spec("cupy") is not None:
+        import cupy
+        from cupy_backends.cuda.api.runtime import CUDARuntimeError
+
+        try:
+            cupy.cuda.Device()
+            backends.append("cupy")
+        except CUDARuntimeError:
+            pass
+    return backends
+
+
+AVAILABLE_BACKENDS = _available_backends()
 
 test_points = [
     dict(H0=70.0, Om0=0.0, w0=-1),

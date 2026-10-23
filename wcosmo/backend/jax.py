@@ -5,7 +5,6 @@ import jax.numpy as jnp
 import numpy as np
 from jax.custom_derivatives import SymbolicZero
 from jax.scipy.special import beta
-from plum import dispatch
 from scipy.special import hyp2f1 as sc_hyp2f1
 
 from ..taylor import definite_integral_pade, indefinite_integral_pade
@@ -97,7 +96,6 @@ _indefinite_integral_pade = _with_integrand_jvp(indefinite_integral_pade)
 
 
 @partial(jax.jit, static_argnums=(4,))
-@dispatch
 def indefinite_integral(z: jax.Array, Om0=None, w0=-1, zpower=0, method="pade"):
     with np.errstate(divide="ignore"):
         return jax.lax.cond(
@@ -112,7 +110,6 @@ def indefinite_integral(z: jax.Array, Om0=None, w0=-1, zpower=0, method="pade"):
 
 
 @jax.jit
-@dispatch
 def definite_integral(z: jax.Array, Om0=None, w0=-1, zpower=0):
     with np.errstate(divide="ignore"):
         return jax.lax.cond(
@@ -138,7 +135,6 @@ def definite_integral_one_component(z, Om0, w0=-1, zpower=0):
 
 
 @jax.jit
-@dispatch
 def indefinite_integral_hypergeometric(z: jax.Array, Om0, w0=-1, zpower=0):
     from ..analytic import _indefinite_integral_hypergeometric
 
@@ -156,7 +152,6 @@ def _indefinite_integral_two_component(z, Om0, w0=-1, zpower=0, method="pade"):
 
 
 @jax.jit
-@dispatch
 def indefinite_integral_one_component(z, Om0, w0=-1, zpower=0):
     power = zpower - 1 / 2 - (3 * w0 / 2) * (Om0 == 0)
     return jax.lax.cond(

@@ -1,10 +1,8 @@
-from functools import partial
-
-from plum import dispatch
+from array_api_compat import is_jax_array
 
 from .analytic import indefinite_integral_hypergeometric
 from .taylor import definite_integral_pade, indefinite_integral_pade
-from .utils import array_namespace, autodoc, maybe_jit
+from .utils import array_namespace, autodoc
 
 __all__ = ["analytic_integral", "definite_integral", "indefinite_integral"]
 
@@ -113,24 +111,32 @@ def analytic_integral(z, Om0, w0=-1, zpower=0, method="pade"):
     )
 
 
-@maybe_jit
-@dispatch
 def definite_integral(z, Om0=None, w0=-1, zpower=0):
     """
     Compute the integral of :math:`(1+z)^k / E(z)` from :math:`0` to
     :math:`z` using the Pade approximation, see
     :func:`wcosmo.taylor.definite_integral_pade`.
     This avoids the cancellation in :math:`I(z) - I(0)` at low redshift.
+
+    If any of :code:`z`, :code:`Om0`, or :code:`w0` is a :code:`JAX` array,
+    including a tracer, this uses the implementation in
+    :code:`wcosmo.backend.jax`.
     """
+    if any(map(is_jax_array, (z, Om0, w0))):
+        from .backend.jax import definite_integral
+
+        return definite_integral(z, Om0, w0, zpower)
     if (Om0 == 0) | (Om0 == 1) | (w0 == 0):
         return definite_integral_one_component(z, Om0, w0, zpower)
     else:
         return definite_integral_pade(z, Om0, w0, zpower)
 
 
-@partial(maybe_jit, static_argnames=("method",))
-@dispatch
 def indefinite_integral(z, Om0=None, w0=-1, zpower=0, method="pade"):
+    if any(map(is_jax_array, (z, Om0, w0))):
+        from .backend.jax import indefinite_integral
+
+        return indefinite_integral(z, Om0, w0, zpower, method)
     if (Om0 == 0) | (Om0 == 1) | (w0 == 0):
         return indefinite_integral_one_component(z, Om0, w0, zpower)
     elif method == "pade":

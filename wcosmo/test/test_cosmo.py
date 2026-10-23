@@ -6,7 +6,7 @@ import pytest
 from astropy import cosmology
 from scipy.integrate import IntegrationWarning
 
-from .. import astropy, wcosmo
+from .. import analytic, astropy, integrate, wcosmo
 from ..utils import array_namespace, disable_units, enable_units, strip_units
 
 funcs = [
@@ -188,3 +188,28 @@ def test_dDLdz_is_the_gradient(cosmo):
     analytic = ours.dDLdz(points).value
 
     assert max(abs(autodiffed - analytic) / analytic) < EPS
+
+
+@pytest.mark.parametrize(
+    "func",
+    [
+        lambda Om0: wcosmo.comoving_distance(0.5, 67.0, Om0),
+        lambda Om0: wcosmo.luminosity_distance(0.5, 67.0, Om0),
+        lambda Om0: integrate.indefinite_integral(0.5, Om0),
+        lambda Om0: analytic.indefinite_integral_hypergeometric(0.5, Om0),
+    ],
+    ids=["comoving_distance", "luminosity_distance", "pade", "hypergeometric"],
+)
+def test_float_redshift_with_traced_parameters(func):
+    """
+    Test that the JAX implementations are used when only the cosmological
+    parameters are JAX arrays, e.g., when inferring the cosmology with fixed
+    redshifts.
+    """
+    jax = pytest.importorskip("jax")
+    disable_units()
+
+    expected = func(0.3)
+    traced = jax.jit(func)(0.3)
+
+    assert abs(float(traced) / float(expected) - 1) < 1e-5

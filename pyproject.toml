@@ -30,8 +30,8 @@ test = [
     "coverage",
     "pre-commit",
     "pytest-cov",
-    'lalsuite; python_version<="3.13"',
-    'jax>=0.4.34,<0.7',  # quax is not currently compatible with jax 0.7 (https://github.com/patrick-kidger/quax/issues/71)
+    'lalsuite; python_version<="3.14"',
+    'jax>=0.4.34',
     "unxt",
 ]
 jax = [

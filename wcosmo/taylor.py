@@ -6,8 +6,7 @@ equivalent to a Pade approximation.
 """
 
 import numpy as np
-from plum import Function, dispatch
-from scipy.interpolate import pade as sc_pade
+from plum import dispatch
 
 from .utils import array_namespace, autodoc
 
@@ -20,13 +19,57 @@ __all__ = [
 ]
 
 
-pade = Function(sc_pade)
-
-
 @dispatch
-def pade(*args, **kwargs):  # noqa: F811
-    p, q = sc_pade(*args, **kwargs)
-    return p.coeffs, q.coeffs
+def pade(an, m, n=None):
+    """
+    Return Pade approximation to a polynomial as the ratio of two polynomials.
+
+    Parameters
+    ----------
+    an : (N,) array_like
+        Taylor series coefficients.
+    m : int
+        The order of the returned approximating polynomial `q`.
+    n : int, optional
+        The order of the returned approximating polynomial `p`. By default,
+        the order is ``len(an)-1-m``.
+
+    Returns
+    -------
+    p, q : array_like
+        The polynomial coefficients, highest order first, such that the Pade
+        approximation of the polynomial defined by `an` is ``p(x)/q(x)``.
+
+    Notes
+    -----
+    This code has been slightly edited from the scipy implementation
+    (:code:`scipy.interpolate.pade`, deprecated in scipy 1.18) to:
+
+    - Return the coefficient arrays rather than :code:`numpy.poly1d`
+    - Directly use the fact that part of the matrix is Toeplitz
+
+    Implementations for other backends are in :code:`wcosmo.backend`.
+    """
+    an = np.asarray(an)
+    if n is None:
+        n = len(an) - 1 - m
+        if n < 0:
+            raise ValueError("Order of q <m> must be smaller than len(an)-1.")
+    if n < 0:
+        raise ValueError("Order of p <n> must be greater than 0.")
+    N = m + n
+    if N > len(an) - 1:
+        raise ValueError("Order of q+p <m+n> must be smaller than len(an).")
+    an = an[: N + 1]
+    Akj = np.eye(N + 1, n + 1, dtype=an.dtype)
+    # Toeplitz matrix with first column [0, -an[:-1]] and first row zero
+    column = np.r_[np.zeros(m, dtype=an.dtype), -an[:-1]]
+    Bkj = column[m - 1 + np.arange(N + 1)[:, None] - np.arange(m)]
+    Ckj = np.hstack((Akj, Bkj))
+    pq = np.linalg.solve(Ckj, an)
+    p = pq[: n + 1]
+    q = np.r_[1.0, pq[n + 1 :]]
+    return p[::-1], q[::-1]
 
 
 def _binomial_coefficients(*, xp):

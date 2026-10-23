@@ -34,3 +34,13 @@ def test_pade_raises_m_n_too_large():
     taylor = np.random.uniform(0, 1, 10)
     with pytest.raises(ValueError):
         wpade(taylor, 20, 20)
+
+
+def test_strip_units_unwraps_zero_dimensional_arrays():
+    from ..utils import strip_units
+
+    value = strip_units(np.array(67.0))
+    assert isinstance(value, float)
+    assert value == 67.0
+    array = np.array([67.0])
+    assert strip_units(array) is array

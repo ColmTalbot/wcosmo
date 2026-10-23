@@ -154,11 +154,14 @@ def strip_units(value):
     """
     Strip units from a value if they are present
     also make sure that the result is not a
-    numpy.float64.
+    numpy.float64 or zero-dimensional numpy array.
+    This avoids promoting lower-precision inputs to double precision.
     """
     if hasattr(value, "unit"):
         value = value.value
-    if isinstance(value, np.float64):
+    if isinstance(value, np.float64) or (
+        isinstance(value, np.ndarray) and value.ndim == 0
+    ):
         value = value.item()
     return value
 

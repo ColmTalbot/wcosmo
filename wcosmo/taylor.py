@@ -6,70 +6,15 @@ equivalent to a Pade approximation.
 """
 
 import numpy as np
-from plum import dispatch
 
 from .utils import array_namespace, autodoc
 
 __all__ = [
     "definite_integral_pade",
     "flat_wcdm_continued_fraction_coefficients",
-    "flat_wcdm_pade_coefficients",
     "flat_wcdm_taylor_expansion",
     "indefinite_integral_pade",
 ]
-
-
-@dispatch
-def pade(an, m, n=None):
-    """
-    Return Pade approximation to a polynomial as the ratio of two polynomials.
-
-    Parameters
-    ----------
-    an : (N,) array_like
-        Taylor series coefficients.
-    m : int
-        The order of the returned approximating polynomial `q`.
-    n : int, optional
-        The order of the returned approximating polynomial `p`. By default,
-        the order is ``len(an)-1-m``.
-
-    Returns
-    -------
-    p, q : array_like
-        The polynomial coefficients, highest order first, such that the Pade
-        approximation of the polynomial defined by `an` is ``p(x)/q(x)``.
-
-    Notes
-    -----
-    This code has been slightly edited from the scipy implementation
-    (:code:`scipy.interpolate.pade`, deprecated in scipy 1.18) to:
-
-    - Return the coefficient arrays rather than :code:`numpy.poly1d`
-    - Directly use the fact that part of the matrix is Toeplitz
-
-    Implementations for other backends are in :code:`wcosmo.backend`.
-    """
-    an = np.asarray(an)
-    if n is None:
-        n = len(an) - 1 - m
-        if n < 0:
-            raise ValueError("Order of q <m> must be smaller than len(an)-1.")
-    if n < 0:
-        raise ValueError("Order of p <n> must be greater than 0.")
-    N = m + n
-    if N > len(an) - 1:
-        raise ValueError("Order of q+p <m+n> must be smaller than len(an).")
-    an = an[: N + 1]
-    Akj = np.eye(N + 1, n + 1, dtype=an.dtype)
-    # Toeplitz matrix with first column [0, -an[:-1]] and first row zero
-    column = np.r_[np.zeros(m, dtype=an.dtype), -an[:-1]]
-    Bkj = column[m - 1 + np.arange(N + 1)[:, None] - np.arange(m)]
-    Ckj = np.hstack((Akj, Bkj))
-    pq = np.linalg.solve(Ckj, an)
-    p = pq[: n + 1]
-    q = np.r_[1.0, pq[n + 1 :]]
-    return p[::-1], q[::-1]
 
 
 def _binomial_coefficients(*, xp):
@@ -125,39 +70,12 @@ def flat_wcdm_taylor_expansion(w0, zpower=0, *, xp=np):
 
 
 @autodoc
-def flat_wcdm_pade_coefficients(w0=-1, zpower=0, *, xp=np):
-    """
-    Compute the Pade coefficients as described in arXiv:1111.6396.
-    We make two primary changes:
-
-    - allow a variable dark energy equation of state :math:`w_0` by changing
-      the definition of :math:`x`.
-    - include more terms (17) in the Taylor expansion.
-
-    The distance integrals in this module use the equivalent, but more stable
-    and accurate, continued fraction in
-    :func:`flat_wcdm_continued_fraction_coefficients` instead.
-
-    Parameters
-    ----------
-    {w0}
-
-    Returns
-    -------
-    p, q: array_like
-        The Pade coefficients
-    """
-    coeffs = flat_wcdm_taylor_expansion(w0, zpower=zpower, xp=xp)
-    p, q = pade(coeffs, len(coeffs) // 2, len(coeffs) // 2)
-    return p, q
-
-
-@autodoc
 def flat_wcdm_continued_fraction_coefficients(w0=-1, zpower=0, *, n_terms=32, xp=np):
     r"""
     Coefficients of a continued fraction approximation to :math:`\Phi`.
 
-    Solving for the coefficients in :func:`flat_wcdm_pade_coefficients` is
+    Solving for the coefficients of a Pade approximant to the Taylor expansion
+    in :func:`flat_wcdm_taylor_expansion`, as in arXiv:1111.6396, is
     ill-conditioned and in single precision can introduce spurious poles in
     the physical domain. Instead, we note that
 
@@ -182,8 +100,8 @@ def flat_wcdm_continued_fraction_coefficients(w0=-1, zpower=0, *, n_terms=32, xp
     Truncating after :math:`2n` terms is equivalent to the :math:`[n/n]`
     Pade approximant to :math:`A \Phi (1 + x)^{{-\frac{{1}}{{2}}}}`.
     Since the continued fraction is evaluated directly, rather than converted
-    to polynomials, we can use more terms than
-    :func:`flat_wcdm_pade_coefficients` without loss of precision.
+    to polynomials, we can use more terms than the :math:`[8/8]` Pade
+    approximant without loss of precision.
 
     The truncation error scales as :math:`\rho^{{2n}}` with
     :math:`\rho = (\sqrt{{1 + x}} - 1) / (\sqrt{{1 + x}} + 1)` and the

@@ -1,7 +1,8 @@
 r"""
 Utilities based on the Taylor expansion of the functions of the form
 :math:`\frac{(1 + z)^k}{E(z)}` for flat wCDM cosmology.
-These functions and their integral are estimated using the Pade approximation.
+These functions and their integral are estimated using a continued fraction,
+equivalent to a Pade approximation.
 """
 
 import numpy as np
@@ -90,6 +91,10 @@ def flat_wcdm_pade_coefficients(w0=-1, zpower=0, *, xp=np):
       the definition of :math:`x`.
     - include more terms (17) in the Taylor expansion.
 
+    The distance integrals in this module use the equivalent, but more stable
+    and accurate, continued fraction in
+    :func:`flat_wcdm_continued_fraction_coefficients` instead.
+
     Parameters
     ----------
     {w0}
@@ -105,10 +110,9 @@ def flat_wcdm_pade_coefficients(w0=-1, zpower=0, *, xp=np):
 
 
 @autodoc
-def flat_wcdm_continued_fraction_coefficients(w0=-1, zpower=0, *, xp=np):
+def flat_wcdm_continued_fraction_coefficients(w0=-1, zpower=0, *, n_terms=32, xp=np):
     r"""
-    Coefficients of a continued fraction approximation to :math:`\Phi` that
-    is numerically stable in single precision.
+    Coefficients of a continued fraction approximation to :math:`\Phi`.
 
     Solving for the coefficients in :func:`flat_wcdm_pade_coefficients` is
     ill-conditioned and in single precision can introduce spurious poles in
@@ -132,16 +136,24 @@ def flat_wcdm_continued_fraction_coefficients(w0=-1, zpower=0, *, xp=np):
         {{}}_2F_1\left(b + \frac{{1}}{{2}}, 1; b + 1; -x\right) =
         \cfrac{{1}}{{1 + \cfrac{{c_1 x}}{{1 + \cfrac{{c_2 x}}{{1 + \dots}}}}}}
 
-    We truncate after 32 terms, this is equivalent to the :math:`[16/16]`
+    Truncating after :math:`2n` terms is equivalent to the :math:`[n/n]`
     Pade approximant to :math:`A \Phi (1 + x)^{{-\frac{{1}}{{2}}}}`.
     Since the continued fraction is evaluated directly, rather than converted
     to polynomials, we can use more terms than
     :func:`flat_wcdm_pade_coefficients` without loss of precision.
 
+    The truncation error scales as :math:`\rho^{{2n}}` with
+    :math:`\rho = (\sqrt{{1 + x}} - 1) / (\sqrt{{1 + x}} + 1)` and the
+    largest :math:`x` is reached at :math:`z = 0`,
+    :math:`x = (1 - \Omega_{{m, 0}}) / \Omega_{{m, 0}}` for :math:`w_0 < 0`,
+    so more terms are needed for small :math:`\Omega_{{m, 0}}`.
+
     Parameters
     ----------
     {w0}
     {zpower}
+    n_terms: int
+        The number of terms in the continued fraction, default=32.
 
     Returns
     -------
@@ -151,7 +163,7 @@ def flat_wcdm_continued_fraction_coefficients(w0=-1, zpower=0, *, xp=np):
     what = (w0 + abs(w0)) / 2
     bb = (1 - 2 * zpower + 3 * what) / (6 * abs(w0))
     coeffs = list()
-    for jj in range(1, 33):
+    for jj in range(1, n_terms + 1):
         ii = jj // 2
         if jj % 2:
             coeff = (bb + ii + 0.5) * (bb + ii) / ((bb + 2 * ii) * (bb + 2 * ii + 1))
@@ -161,7 +173,21 @@ def flat_wcdm_continued_fraction_coefficients(w0=-1, zpower=0, *, xp=np):
     return xp.stack(coeffs)
 
 
-def _continued_fraction_and_difference(coeffs, x0, x1, dx):
+def _n_terms(x, xp):
+    r"""
+    The number of continued fraction terms to use for the precision of
+    :code:`x`. In double precision, 64 terms give a relative error in the
+    distance integrals :math:`\lesssim 10^{{-12}}` for
+    :math:`\Omega_{{m, 0}} \geq 0.05`, rising to :math:`\sim 10^{{-7}}` at
+    :math:`\Omega_{{m, 0}} = 0.02` and :math:`\sim 10^{{-5}}` at
+    :math:`\Omega_{{m, 0}} = 0.01`. In lower precision 32 terms are enough.
+    """
+    if xp.asarray(x).dtype == xp.float64:
+        return 64
+    return 32
+
+
+def _continued_fraction_and_difference(coeffs, x0, x1, dx, root_0, root_1):
     r"""
     Evaluate the continued fraction defined in
     :func:`flat_wcdm_continued_fraction_coefficients` at :code:`x0` and
@@ -173,15 +199,32 @@ def _continued_fraction_and_difference(coeffs, x0, x1, dx):
         f_j(x) = \frac{{1}}{{1 + c_j x f_{{j + 1}}(x)}}
 
         \Delta f_j = -c_j f_j(x_0) f_j(x_1)
-        \left(\Delta x f_{{j + 1}}(x_1) + x_0 \Delta f_{{j + 1}}\right).
+        \left(\Delta x f_{{j + 1}}(x_0) + x_1 \Delta f_{{j + 1}}\right).
 
     This avoids explicitly forming :math:`f(x_1) - f(x_0)`.
+    An error in :math:`\Delta f_{{j + 1}}` is multiplied by
+    :math:`\prod_{{i \leq j}} c_i x_1 f_i(x_0) f_i(x_1)` by the end of the
+    recurrence, this is less than :math:`0.4` for :math:`x_1 \leq x_0 \leq 1000`.
+    The equivalent split
+    :math:`\Delta x f_{{j + 1}}(x_1) + x_0 \Delta f_{{j + 1}}` replaces
+    :math:`x_1` by :math:`x_0` in this product, which amplifies rounding
+    errors by up to :math:`\sim 10^{{2}}` for :math:`x_0 = 9`
+    (:math:`\Omega_{{m, 0}} = 0.1`) and :math:`\sim 10^{{15}}` for
+    :math:`x_0 = 19` (:math:`\Omega_{{m, 0}} = 0.05`).
+
+    The coefficients tend to :math:`\frac{{1}}{{4}}` and we start the
+    recurrence from the value of the continued fraction with all remaining
+    coefficients equal to :math:`\frac{{1}}{{4}}`,
+    :math:`f(x) = 2 / (1 + \sqrt{{1 + x}})`, rather than :math:`1`. This
+    reduces the truncation error by one to two orders of magnitude at no extra
+    cost as :code:`root_0` :math:`= \sqrt{{1 + x_0}}` and :code:`root_1`
+    :math:`= \sqrt{{1 + x_1}}` are needed anyway.
     """
-    value_0 = 1
-    value_1 = 1
-    difference = 0
+    value_0 = 2 / (1 + root_0)
+    value_1 = 2 / (1 + root_1)
+    difference = -value_0 * value_1 * dx / (2 * (root_0 + root_1))
     for coeff in coeffs[::-1]:
-        delta = dx * value_1 + x0 * difference
+        delta = dx * value_0 + x1 * difference
         value_0 = 1 / (1 + coeff * x0 * value_0)
         value_1 = 1 / (1 + coeff * x1 * value_1)
         difference = -coeff * delta * value_0 * value_1
@@ -191,24 +234,19 @@ def _continued_fraction_and_difference(coeffs, x0, x1, dx):
 def _phi_and_difference(x0, x1, dx, w0, zpower, xp):
     r"""
     Compute :math:`\Phi(x_1)` and :math:`\Phi(x_1) - \Phi(x_0)` given
-    :math:`x_1 - x_0`.
-
-    In double precision we use the Pade coefficients from
-    :func:`flat_wcdm_pade_coefficients` and the divided differences of the
-    polynomials. Otherwise, we use the stable construction from
+    :math:`x_1 - x_0` using the continued fraction from
     :func:`flat_wcdm_continued_fraction_coefficients`.
     """
-    if xp.asarray(x1).dtype == xp.float64:
-        p, q = flat_wcdm_pade_coefficients(w0=w0, zpower=zpower, xp=xp)
-        p0, p1, dp = _horner_divided_difference(p, x0, x1)
-        q0, q1, dq = _horner_divided_difference(q, x0, x1)
-        return p1 / q1, dx * (dp * q0 - p0 * dq) / (q0 * q1)
-    coeffs = flat_wcdm_continued_fraction_coefficients(w0=w0, zpower=zpower, xp=xp)
-    _, value, difference = _continued_fraction_and_difference(coeffs, x0, x1, dx)
-    what = (w0 + abs(w0)) / 2
-    norm = 1 - 2 * zpower + 3 * what
+    coeffs = flat_wcdm_continued_fraction_coefficients(
+        w0=w0, zpower=zpower, n_terms=_n_terms(x1, xp), xp=xp
+    )
     root_0 = (1 + x0) ** 0.5
     root_1 = (1 + x1) ** 0.5
+    _, value, difference = _continued_fraction_and_difference(
+        coeffs, x0, x1, dx, root_0, root_1
+    )
+    what = (w0 + abs(w0)) / 2
+    norm = 1 - 2 * zpower + 3 * what
     phi = root_1 * value / norm
     difference = (dx / (root_0 + root_1) * value + root_0 * difference) / norm
     return phi, difference
@@ -219,39 +257,23 @@ def _phi(x, w0, zpower, xp):
     Compute :math:`\Phi(x)` as in :func:`_phi_and_difference`, without the
     difference.
     """
-    if xp.asarray(x).dtype == xp.float64:
-        p, q = flat_wcdm_pade_coefficients(w0=w0, zpower=zpower, xp=xp)
-        return xp.polyval(p, x) / xp.polyval(q, x)
-    coeffs = flat_wcdm_continued_fraction_coefficients(w0=w0, zpower=zpower, xp=xp)
-    value = 1
+    coeffs = flat_wcdm_continued_fraction_coefficients(
+        w0=w0, zpower=zpower, n_terms=_n_terms(x, xp), xp=xp
+    )
+    root = (1 + x) ** 0.5
+    value = 2 / (1 + root)
     for coeff in coeffs[::-1]:
         value = 1 / (1 + coeff * x * value)
     what = (w0 + abs(w0)) / 2
-    return (1 + x) ** 0.5 * value / (1 - 2 * zpower + 3 * what)
-
-
-def _horner_divided_difference(coeffs, x0, x1):
-    """
-    Evaluate a polynomial at :code:`x0` and :code:`x1` and the divided
-    difference :math:`(p(x_1) - p(x_0)) / (x_1 - x_0)` using Horner's scheme
-    without explicitly forming the difference.
-    """
-    value_0 = 0
-    value_1 = 0
-    difference = 0
-    for coeff in coeffs:
-        difference = difference * x0 + value_1
-        value_0 = value_0 * x0 + coeff
-        value_1 = value_1 * x1 + coeff
-    return value_0, value_1, difference
+    return root * value / (1 - 2 * zpower + 3 * what)
 
 
 @autodoc
 def indefinite_integral_pade(z, Om0, w0=-1, zpower=0):
     r"""
-    Compute the Pade approximation to :math:`(1+z)^k / E(z)` as described in
-    arXiv:1111.6396. We extend it to include a variable dark energy
-    equation of state, other integrands via powers of :math:`1 + z` and
+    Compute the integral of :math:`(1+z)^k / E(z)` using a Pade approximation
+    as described in arXiv:1111.6396. We extend it to include a variable dark
+    energy equation of state, other integrands via powers of :math:`1 + z` and
     include more terms in the expansion
 
     .. math::
@@ -271,7 +293,10 @@ def indefinite_integral_pade(z, Om0, w0=-1, zpower=0):
         x = \left(\frac{{1 - \Omega_{{m, 0}}}}{{\Omega_{{m, 0}}}}\right)
         (1 + z)^{{3 w_0}}.
 
-    In practice we use :math:`m=n=7` whereas Adachi and Kasai use :math:`m=n=3`.
+    Adachi and Kasai use :math:`m=n=3`. We evaluate :math:`\Phi` with the
+    equivalent continued fraction described in
+    :func:`flat_wcdm_continued_fraction_coefficients`, using 64 terms
+    (:math:`m=n=32`) in double precision and 32 terms otherwise.
 
     Parameters
     ----------
@@ -300,8 +325,7 @@ def indefinite_integral_pade(z, Om0, w0=-1, zpower=0):
 def definite_integral_pade(z, Om0, w0=-1, zpower=0):
     r"""
     Compute the definite integral of :math:`(1+z)^k / E(z)` from :math:`0`
-    to :math:`z` using the Pade approximation in
-    :func:`indefinite_integral_pade`.
+    to :math:`z` using the approximation in :func:`indefinite_integral_pade`.
 
     This is equivalent to :math:`I(z) - I(0)`, but we analytically
     rearrange the difference to avoid catastrophic cancellation at
@@ -315,11 +339,8 @@ def definite_integral_pade(z, Om0, w0=-1, zpower=0):
 
     where :math:`(1 + z)^{{k - \frac{{1}}{{2}}}} - 1` is computed with
     :code:`expm1` and :code:`log1p` and :math:`\Phi(x_z) - \Phi(x_0)` is
-    computed from the divided differences of the Pade polynomials.
-
-    For inputs that are not double precision, we instead use the continued
-    fraction representation of :math:`\Phi` described in
-    :func:`flat_wcdm_continued_fraction_coefficients`.
+    computed alongside the continued fraction representation of :math:`\Phi`
+    described in :func:`flat_wcdm_continued_fraction_coefficients`.
 
     Parameters
     ----------
